@@ -125,7 +125,10 @@
           <div class="live-meeting-header-actions">
             <span class="live-meeting-count" id="liveMeetingCount"></span>
             <button class="live-action-button" id="liveChatToggle" type="button"
-                    aria-pressed="true" aria-controls="connectChatSide">Hide chat</button>
+                    aria-pressed="true" aria-expanded="true" aria-controls="connectChatSide">
+              <span id="liveChatToggleLabel">Hide chat</span>
+              <span id="liveUnreadNotification" class="live-unread-notification hidden" aria-hidden="true">!</span>
+            </button>
           </div>
         </div>
         <div class="live-participant-grid" id="liveParticipantGrid" aria-label="Live Meeting participants. Drag or use the arrow buttons on any tile to reorder."></div>

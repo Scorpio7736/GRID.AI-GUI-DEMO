@@ -118,7 +118,10 @@ function iconText(agent) {
 
 function showToast(message) {
   const toast = $("toast");
-  toast.textContent = message;
+  // Both transient toasts and persisted transcript notices share one clear
+  // system-notification identity. Escape all dynamic text before insertion.
+  toast.innerHTML = '<strong class="system-notification-heading">Grid.AI System Notification</strong>' +
+    '<span class="system-notification-content">' + escapeHtml(message) + '</span>';
   toast.classList.add("visible");
 
   clearTimeout(toastTimer);
@@ -382,7 +385,10 @@ function renderMessages(animateId = null) {
 
     if (message.kind === "notice") {
       html += `
-        <div class="notice">${escapeHtml(message.text)}</div>
+        <div class="notice" role="status">
+          <strong class="system-notification-heading">Grid.AI System Notification</strong>
+          <span class="system-notification-content">${escapeHtml(message.text)}</span>
+        </div>
       `;
       continue;
     }
@@ -472,7 +478,7 @@ function renderMessages(animateId = null) {
 
     html += `
       <div class="approval-card">
-        <div class="eyebrow">DEMO / ACTION REVIEW</div>
+        <div class="eyebrow">Grid.AI System Notification · DEMO / ACTION REVIEW</div>
         <h3>Run a registered development test</h3>
         <p>
           Example operation: run a scoped .NET test against

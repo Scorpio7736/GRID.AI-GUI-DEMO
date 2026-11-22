@@ -16,6 +16,8 @@
   const camera = get("liveVideoToggle");
   const cameraLabel = get("liveVideoLabel");
   const chatToggle = get("liveChatToggle");
+  const chatToggleLabel = get("liveChatToggleLabel");
+  const unreadBadge = get("liveUnreadNotification");
   const leave = get("liveLeaveButton");
   const activity = get("liveSpeakingStatus");
   const main = document.querySelector(".main");
@@ -28,6 +30,7 @@
   const bottomContinueMenu = get("liveContinueMenu");
   if (!stage || !grid || !title || !count || !toggle || !inspectorHelp ||
       !mic || !micLabel || !camera || !cameraLabel || !chatToggle ||
+      !chatToggleLabel || !unreadBadge ||
       !leave || !activity || !main || !app || !topbarParticipants ||
       !workspace || !chatSide ||
       !bottomContinue || !bottomContinueButton || !bottomContinueMenu) return;
@@ -60,6 +63,44 @@
   const CHAT_TOGGLE_MS = 380;
   let chatToggleTimer = null;
   let chatToggleChatId = null;
+  const lastNoticeIdByChat = new Map();
+  const observedApprovalByChat = new Map();
+  const unreadNotifications = new Set();
+
+  function latestSystemNoticeId(chat) {
+    let lastId = 0;
+    for (const message of chat.messages || []) {
+      if (message.kind === "notice" && typeof message.id === "number") {
+        lastId = Math.max(lastId, message.id);
+      }
+    }
+    return lastId;
+  }
+
+  function noteNewEvents(chat) {
+    if (!chat) return;
+    const id = chat.id;
+    const newestId = latestSystemNoticeId(chat);
+    const previousId = lastNoticeIdByChat.get(id);
+    if (previousId !== undefined && newestId > previousId &&
+        chat.liveMeeting && chat.liveChatVisible === false) {
+      unreadNotifications.add(id);
+    }
+    lastNoticeIdByChat.set(id, newestId);
+
+    const pending = chat.approval?.status === "pending" ? chat.approval : null;
+    if (pending && observedApprovalByChat.get(id) !== pending) {
+      observedApprovalByChat.set(id, pending);
+      if (chat.liveMeeting && chat.liveChatVisible === false) {
+        // A new approval requires immediate access to the decision controls.
+        // Reuse the same animated show-chat path as the user-facing button.
+        setChatVisible(true);
+        showToast("Approval request received. Meeting chat opened for review.");
+      }
+    } else if (!pending) {
+      observedApprovalByChat.delete(id);
+    }
+  }
 
   function finishChatPanelAnimation() {
     if (chatToggleTimer !== null) clearTimeout(chatToggleTimer);
@@ -240,9 +281,16 @@
     const joining = queuedInvitations(chat).length;
     count.textContent = (chat.participants.length + 1) + " participants" +
       (joining ? " · " + joining + " joining…" : "") + " · demo";
-    chatToggle.textContent = chat.liveChatVisible === false ? "Show chat" : "Hide chat";
-    chatToggle.setAttribute("aria-pressed", String(chat.liveChatVisible !== false));
-    chatToggle.setAttribute("aria-expanded", String(chat.liveChatVisible !== false));
+    const isChatHidden = chat.liveChatVisible === false;
+    const hasUnread = isChatHidden && unreadNotifications.has(chat.id);
+    if (!isChatHidden) unreadNotifications.delete(chat.id);
+    chatToggleLabel.textContent = isChatHidden ? "Show chat" : "Hide chat";
+    unreadBadge.classList.toggle("hidden", !hasUnread);
+    chatToggle.setAttribute("aria-label", hasUnread
+      ? "Show chat — unread Grid.AI System Notification"
+      : isChatHidden ? "Show chat" : "Hide chat");
+    chatToggle.setAttribute("aria-pressed", String(!isChatHidden));
+    chatToggle.setAttribute("aria-expanded", String(!isChatHidden));
     mic.setAttribute("aria-pressed", String(!!chat.liveMicPreview));
     mic.classList.toggle("is-on", !!chat.liveMicPreview);
     micLabel.textContent = chat.liveMicPreview ? "Mic on · demo" : "Mic off";
@@ -323,33 +371,38 @@
 
   toggle.addEventListener("click", () => changeMeetingMode(!currentChat()?.liveMeeting));
   leave.addEventListener("click", () => changeMeetingMode(false));
-  chatToggle.addEventListener("click", () => {
+  function setChatVisible(visible) {
     const chat = currentChat();
-    if (!chat?.liveMeeting) return;
+    if (!chat?.liveMeeting || (chat.liveChatVisible !== false) === visible) return;
 
-    // State is applied immediately; the CSS grid track animates its width
-    // (or height on mobile). A rapid reverse starts from its current size.
+    // Retain the existing slide/fade transition, including fast reversals.
     if (chatToggleTimer !== null) {
       clearTimeout(chatToggleTimer);
       chatToggleTimer = null;
     }
     if (state.motionEnabled) {
-      // Keep the transition class during a quick reversal so CSS can animate
-      // from the panel's intermediate position instead of snapping to an edge.
       if (!main.classList.contains("live-chat-transitioning")) {
         main.classList.add("live-chat-transitioning");
-        void workspace.offsetWidth; // Commit the starting layout.
+        void workspace.offsetWidth;
       }
       chatToggleChatId = chat.id;
     } else {
       finishChatPanelAnimation();
     }
-    chat.liveChatVisible = chat.liveChatVisible === false;
+
+    chat.liveChatVisible = visible;
+    if (visible) unreadNotifications.delete(chat.id);
     syncLiveMeeting();
 
     if (state.motionEnabled) {
       chatToggleTimer = setTimeout(finishChatPanelAnimation, CHAT_TOGGLE_MS + 40);
     }
+  }
+
+  chatToggle.addEventListener("click", () => {
+    const chat = currentChat();
+    if (!chat?.liveMeeting) return;
+    setChatVisible(chat.liveChatVisible === false);
   });
 
   bottomContinueButton.addEventListener("click", () => {
@@ -418,6 +471,7 @@
   const previousRenderMessages = renderMessages;
   renderMessages = function (...args) {
     previousRenderMessages(...args);
+    noteNewEvents(currentChat());
     syncLiveMeeting();
     const messageId = args[0];
     const chat = currentChat();
@@ -438,5 +492,18 @@
     syncLiveMeeting();
   };
 
+  // Temporary notifications also light the unread marker when chat is hidden,
+  // even if no persistent transcript notice accompanies the toast.
+  const previousShowToast = showToast;
+  showToast = function (...args) {
+    previousShowToast(...args);
+    const chat = currentChat();
+    if (chat?.liveMeeting && chat.liveChatVisible === false) {
+      unreadNotifications.add(chat.id);
+      syncLiveMeeting();
+    }
+  };
+
+  noteNewEvents(currentChat());
   syncLiveMeeting();
 })();

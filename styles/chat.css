@@ -1337,3 +1337,21 @@ textarea:focus-visible {
   overflow-wrap: anywhere;
   color: var(--text);
 }
+
+/* Consistent identity for persistent and transient system notifications. */
+.system-notification-heading {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--gold);
+  font: 700 10px/1.35 var(--mono);
+  letter-spacing: .45px;
+}
+.system-notification-content {
+  display: block;
+  color: inherit;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.toast .system-notification-heading { margin-bottom: 4px; }
+.toast .system-notification-content { color: var(--ivory); }
+

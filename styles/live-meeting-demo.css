@@ -438,3 +438,18 @@
   transform: none;
 }
 
+/* A single unread (!) flag next to Show chat for Live Meeting notifications. */
+.live-unread-notification {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 50%;
+  background: #e2a449;
+  color: #171c21;
+  font: 800 13px/1 var(--mono);
+  box-shadow: 0 0 12px rgba(226, 164, 73, .3);
+}
+.live-unread-notification.hidden { display: none !important; }
+
