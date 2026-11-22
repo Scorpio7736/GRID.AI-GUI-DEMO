@@ -132,18 +132,38 @@
                         title="Add attachment preview" aria-label="Add attachment"
                         aria-haspopup="menu" aria-expanded="false" disabled>+</button>
                 <div class="demo-add-menu hidden" id="demoAddMenu" role="menu"
-                     aria-label="Choose demo attachment">
-                  <div class="demo-add-heading">ATTACHMENT PREVIEW · NO FILES ACCESSED</div>
-                  <button class="demo-add-option" type="button" role="menuitem"
-                          data-demo-attachment="Sample-document.pdf">Sample document (.pdf)</button>
-                  <button class="demo-add-option" type="button" role="menuitem"
-                          data-demo-attachment="Project-notes.md">GRID workspace file (.md)</button>
-                  <button class="demo-add-option" type="button" role="menuitem"
-                          data-demo-attachment="Screenshot.png">Screenshot (.png)</button>
+                     aria-label="Add demo content">
+                  <div id="demoAddMenuRoot">
+                    <div class="demo-add-heading">ADD CONTEXT · DEMO PREVIEW</div>
+                    <button class="demo-add-option" type="button" role="menuitem"
+                            data-demo-add-action="files">+ &nbsp; Add files</button>
+                    <button class="demo-add-option" type="button" role="menuitem"
+                            data-demo-add-action="link">↗ &nbsp; Add link</button>
+                  </div>
+                  <div class="hidden" id="demoAddFilesPane">
+                    <button class="demo-add-back" type="button" data-demo-add-back>← Back</button>
+                    <div class="demo-add-heading">SAMPLE FILES · NO FILES ACCESSED</div>
+                    <button class="demo-add-option" type="button" role="menuitem"
+                            data-demo-attachment="Sample-document.pdf">Sample document (.pdf)</button>
+                    <button class="demo-add-option" type="button" role="menuitem"
+                            data-demo-attachment="Project-notes.md">GRID workspace file (.md)</button>
+                    <button class="demo-add-option" type="button" role="menuitem"
+                            data-demo-attachment="Screenshot.png">Screenshot (.png)</button>
+                  </div>
+                  <div class="hidden" id="demoAddLinkPane">
+                    <button class="demo-add-back" type="button" data-demo-add-back>← Back</button>
+                    <label class="demo-link-label" for="demoLinkInput">LINK PREVIEW · NOT OPENED</label>
+                    <input id="demoLinkInput" class="demo-link-input" type="url"
+                           autocomplete="off" spellcheck="false" maxlength="240"
+                           placeholder="https://example.com" aria-label="Link URL (demo only)">
+                    <button class="demo-link-confirm" type="button" id="demoAddLinkConfirm">
+                      Add link preview
+                    </button>
+                  </div>
                 </div>
               </div>
               <button class="demo-media-button" id="demoVoiceInput" type="button"
-                      title="Voice input preview (no microphone)" aria-label="Voice input preview"
+                      title="Voice unavailable in demo · visual preview only" aria-label="Voice input preview (no microphone)"
                       aria-pressed="false" disabled>
                 <svg viewBox="0 0 24 24" width="17" height="17" fill="none"
                      stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
@@ -191,6 +211,7 @@
       </div>
       <div class="composer-caption">
         Standalone preview · Refresh clears conversations · No Grid.AI backend
+        <span class="demo-voice-disclaimer">Voice input and AI voice playback will not work in this demo.</span>
       </div>
     </footer>
   </main>

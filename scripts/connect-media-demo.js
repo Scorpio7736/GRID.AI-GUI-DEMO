@@ -7,10 +7,16 @@
   const attachButton = get("demoAddAttachment");
   const attachMenu = get("demoAddMenu");
   const attachTray = get("demoAttachmentTray");
+  const menuRoot = get("demoAddMenuRoot");
+  const filesPane = get("demoAddFilesPane");
+  const linkPane = get("demoAddLinkPane");
+  const linkInput = get("demoLinkInput");
+  const linkConfirm = get("demoAddLinkConfirm");
   const micButton = get("demoVoiceInput");
   const micState = get("demoVoiceState");
   const messageRoot = get("messages");
-  if (!attachButton || !attachMenu || !attachTray || !micButton || !micState || !messageRoot) return;
+  if (!attachButton || !attachMenu || !attachTray || !menuRoot || !filesPane ||
+      !linkPane || !linkInput || !linkConfirm || !micButton || !micState || !messageRoot) return;
 
   const sampleNames = new Set(["Sample-document.pdf", "Project-notes.md", "Screenshot.png"]);
   const previewsByChat = new Map();
@@ -19,10 +25,18 @@
   let speaking = null;
   let speakerTimer = null;
 
+  function showAddPane(which = "root") {
+    menuRoot.classList.toggle("hidden", which !== "root");
+    filesPane.classList.toggle("hidden", which !== "files");
+    linkPane.classList.toggle("hidden", which !== "link");
+    if (which === "link") linkInput.focus();
+  }
+
   function closeAttachmentMenu(returnFocus) {
     const wasOpen = !attachMenu.classList.contains("hidden");
     attachMenu.classList.add("hidden");
     attachButton.setAttribute("aria-expanded", "false");
+    showAddPane();
     if (wasOpen && returnFocus) attachButton.focus();
   }
 
@@ -88,12 +102,26 @@
   attachButton.addEventListener("click", () => {
     if (attachButton.disabled) return;
     const isHidden = attachMenu.classList.contains("hidden");
-    if (isHidden) attachMenu.classList.remove("hidden");
-    else attachMenu.classList.add("hidden");
+    if (isHidden) {
+      showAddPane();
+      attachMenu.classList.remove("hidden");
+    } else {
+      closeAttachmentMenu(false);
+    }
     attachButton.setAttribute("aria-expanded", String(isHidden));
   });
 
   attachMenu.addEventListener("click", event => {
+    const action = event.target.closest("[data-demo-add-action]");
+    if (action && currentChat()) {
+      showAddPane(action.dataset.demoAddAction);
+      return;
+    }
+    if (event.target.closest("[data-demo-add-back]")) {
+      showAddPane();
+      attachMenu.querySelector('[data-demo-add-action="files"]')?.focus();
+      return;
+    }
     const item = event.target.closest("[data-demo-attachment]");
     if (!item || !currentChat()) return;
     const filename = item.dataset.demoAttachment;
@@ -105,6 +133,41 @@
     closeAttachmentMenu(true);
     drawAttachmentChips();
     showToast("Added " + filename + " (sample preview only). No file was opened.");
+  });
+
+  function addLinkPreview() {
+    const chat = currentChat();
+    if (!chat) return;
+    const input = linkInput.value.trim();
+    let url;
+    try {
+      url = new URL(input);
+    } catch {
+      showToast("Enter a valid http:// or https:// link for the demo.");
+      return;
+    }
+    if (!["http:", "https:"].includes(url.protocol) || !url.hostname ||
+        input.length > 240) {
+      showToast("Use an http:// or https:// link (240 characters maximum).");
+      return;
+    }
+    // Store only the visible URL text. No request, fetch or preview download.
+    const label = "Link: " + input;
+    const items = previewsByChat.get(chat.id) || [];
+    if (!items.includes(label)) items.push(label);
+    previewsByChat.set(chat.id, items);
+    linkInput.value = "";
+    closeAttachmentMenu(true);
+    drawAttachmentChips();
+    showToast("Link preview added. The link was not opened or fetched.");
+  }
+
+  linkConfirm.addEventListener("click", addLinkPreview);
+  linkInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addLinkPreview();
+    }
   });
 
   attachTray.addEventListener("click", event => {
@@ -148,7 +211,9 @@
   attachMenu.addEventListener("keydown", event => {
     if (event.key === "Escape") {
       event.preventDefault();
-      closeAttachmentMenu(true);
+      event.stopPropagation();
+      if (!menuRoot.classList.contains("hidden")) closeAttachmentMenu(true);
+      else showAddPane();
     }
   });
   document.addEventListener("click", event => {

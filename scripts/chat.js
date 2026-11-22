@@ -884,7 +884,7 @@ function sendMessage() {
     const reply = makeMessage(
       agent,
       attachments.length
-        ? "I can see the attachment names in this demonstration, but no files were opened, uploaded, or analyzed. In the real GRID.AI system, file access would require appropriate grants and review."
+        ? "I can see file and link labels in this demonstration, but no files or websites were accessed, uploaded, or analyzed. Real GRID.AI access would require appropriate grants and review."
         : demonstrationReply(agent, text),
       { demo: true }
     );
