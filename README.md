@@ -147,3 +147,9 @@ When an invited agent joins a **Live Meeting**, only their new participant tile 
 ## Invitation notices and unified invite control
 
 **+ Invite agent** in the topbar is now the only way to invite participants, in both standard chat and Live Meeting. The duplicate **Add agent** action in the Live Meeting header was removed. Confirmed invitations add a persistent **Invitation sent to [AGENT]** notice immediately to the same conversation, followed by the existing randomized join delay, arrival notice, and scripted greeting. These notices remain in the transcript even if the chat panel is hidden. All behavior is demo-only.
+
+## Square, sortable Live Meeting tiles
+
+The Live Meeting stage now uses **equally sized square (1:1)** participant tiles for every agent and Master Control. The layout chooses the number of columns that best fits the available space and participant count, then recalculates when the window or chat pane changes size. When vertical room is too tight, it keeps readable squares and scrolls rather than squeezing participants into narrow or stretched cells.
+
+Tile order is customizable **per meeting**: drag a tile onto another tile, use its **‹ / ›** buttons (also usable on touchscreens), or focus either button and use **Arrow keys, Home, or End**. Existing ordering is retained as new agents join, with new participants appended at the end. The order lasts until the browser demo refreshes. No real audio, video, or external operations are involved.

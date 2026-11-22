@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="./styles/workspace-ui.css">
 <link rel="stylesheet" href="./styles/connect-media-demo.css">
 <link rel="stylesheet" href="./styles/live-meeting-demo.css">
+<link rel="stylesheet" href="./styles/live-tile-layout.css">
 </head>
 
 <body>
@@ -119,6 +120,7 @@
             <div class="live-meeting-kicker"><span class="live-meeting-light" aria-hidden="true"></span> LIVE MEETING · UI DEMO</div>
             <h2 id="liveMeetingTitle">Live agent meeting</h2>
             <p>Agent voices and cameras are simulated. No microphone, camera or network connection is used.</p>
+            <p class="live-sort-hint">Square tiles · Drag to reorder or use the arrow buttons on each participant</p>
           </div>
           <div class="live-meeting-header-actions">
             <span class="live-meeting-count" id="liveMeetingCount"></span>
@@ -126,7 +128,7 @@
                     aria-pressed="true" aria-controls="connectChatSide">Hide chat</button>
           </div>
         </div>
-        <div class="live-participant-grid" id="liveParticipantGrid" aria-label="Live meeting participants"></div>
+        <div class="live-participant-grid" id="liveParticipantGrid" aria-label="Live Meeting participants. Drag or use the arrow buttons on any tile to reorder."></div>
         <div class="live-meeting-activity" id="liveSpeakingStatus" role="status" aria-live="polite">
           Awaiting a response · Select an agent tile to preview the speaking indicator.
         </div>
@@ -389,5 +391,6 @@
 <script src="./scripts/workspace-ui.js"></script>
 <script src="./scripts/connect-media-demo.js"></script>
 <script src="./scripts/live-meeting-demo.js"></script>
+<script src="./scripts/live-tile-layout.js"></script>
 </body>
 </html>

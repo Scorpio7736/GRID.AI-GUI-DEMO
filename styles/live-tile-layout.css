@@ -1,0 +1,100 @@
+/* Equal-square adaptive meeting tiles. Overrides fixed-height live cards. */
+.main.live-meeting-mode .live-participant-grid {
+  min-width: 0;
+  min-height: 110px;
+  display: grid;
+  grid-template-columns: repeat(var(--live-grid-columns, 2), minmax(0, 1fr));
+  grid-auto-rows: var(--live-tile-size, 190px);
+  gap: 12px;
+  align-content: safe center;
+  justify-items: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 3px 5px 7px;
+  scrollbar-gutter: stable;
+}
+.main.live-meeting-mode .live-participant-tile {
+  width: var(--live-tile-size, 190px);
+  height: var(--live-tile-size, 190px);
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+  cursor: grab;
+}
+.live-sort-hint {
+  margin-top: 7px !important;
+  color: #b9a472 !important;
+  font: 10px/1.4 var(--mono) !important;
+}
+.live-tile-sort-controls {
+  position: absolute;
+  top: 7px;
+  left: 8px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 3px;
+  border: 1px solid rgba(115,135,150,.26);
+  border-radius: 7px;
+  background: rgba(8,13,19,.78);
+}
+.live-tile-drag-grip {
+  padding: 0 3px;
+  color: #e0c277;
+  cursor: grab;
+  user-select: none;
+  font-size: 15px;
+}
+.live-tile-shift {
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 24px;
+  border: 0;
+  border-radius: 5px;
+  color: #e4eaf0;
+  background: #283645;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.live-tile-shift:hover,
+.live-tile-shift:focus-visible {
+  background: var(--gold);
+  color: #151b21;
+  outline-offset: 2px;
+}
+.live-participant-tile.is-dragging { opacity: .4; cursor: grabbing; }
+.live-participant-tile.is-drop-target {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(244,203,84,.27);
+}
+.live-participant-grid.is-compact .live-participant-face {
+  width: 64px; height: 64px;
+}
+.live-participant-grid.is-compact .live-participant-face .agent-portrait {
+  width: 60px; height: 60px; flex-basis: 60px;
+}
+.live-participant-grid.is-compact .live-user-avatar {
+  width: 60px; height: 60px; font-size: 18px;
+}
+.live-participant-grid.is-compact .live-participant-name {
+  margin-top: 5px; font-size: 12px;
+}
+.live-participant-grid.is-compact .live-participant-role {
+  max-width: 95%; font-size: 9px; text-align: center;
+}
+.live-participant-grid.is-compact .live-preview-speak {
+  margin-top: 2px; padding: 3px 6px; font-size: 9px;
+}
+.live-participant-grid.is-compact .live-speaking-label { margin-top: 2px; }
+.live-participant-grid.is-micro .live-participant-role,
+.live-participant-grid.is-micro .live-preview-speak,
+.live-participant-grid.is-micro .live-speaking-label { display: none; }
+.live-participant-grid.is-micro .live-tile-sort-controls { top: 4px; left: 4px; }
+.live-participant-grid.is-micro .live-tile-shift { width: 20px; height: 20px; }
+@media (max-width: 750px) {
+  .live-sort-hint { font-size: 9px !important; }
+  .main.live-meeting-mode .live-participant-grid { padding: 2px 2px 5px; }
+}
