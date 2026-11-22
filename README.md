@@ -93,3 +93,11 @@ The Connect GUI demo now defaults to **Animations ON**, with a separate toggle a
 ## Continue conversation selector
 
 The chat composer has a **Continue conversation** dropdown next to **Send**, enabled when a conversation is active. Its three choices are **Even G2 Glasses**, **Phone Call**, and **Other**. This is a UI-only handoff preview: clicking an option displays a toast indicating the destination, without initiating a device connection or telephone call. The menu supports arrow-key navigation, Escape to close, and closes on outside click or when switching conversations.
+
+## Connect composer media controls (visual demonstration)
+
+- **Continue conversation → Terminal** joins Even G2 Glasses, Phone Call and Other. Choosing any destination produces a simulated handoff notification and does not launch a terminal or connect a device.
+- The **+** button opens a menu of three clearly labeled sample attachment previews. Selecting a sample adds a removable filename chip; sending records only its sample name in the temporary transcript. No files are read, selected from the user's computer, uploaded or analyzed.
+- The **microphone** button toggles a visible voice-input preview state. It does not request microphone access or perform speech recognition.
+- Every agent response includes a **speaker icon** that briefly animates a silent AI-voice playback preview. It does not play audio or synthesize speech.
+- All preview state is local to the current page. No real GRID.AI backend, speech engine, device or file integration is used.

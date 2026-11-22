@@ -390,11 +390,31 @@ function renderMessages(animateId = null) {
           <div class="message-meta">
             <strong>${escapeHtml(message.role)}</strong>
             <span>${escapeHtml(formatTime(message.createdAt))}</span>
+            ${!isUser ? `
+              <button class="demo-speaker-button" type="button"
+                      data-demo-speaker="${message.id}" aria-pressed="false"
+                      aria-label="AI voice response preview (silent demo)"
+                      title="AI voice preview · no audio output">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none"
+                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true">
+                  <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z"/>
+                  <path d="M15 9a5 5 0 0 1 0 6M18 6a9 9 0 0 1 0 12"/>
+                </svg>
+              </button>` : ""}
           </div>
 
           <div class="bubble" id="bubble-${message.id}">${
             isAnimating ? "" : escapeHtml(message.text)
           }</div>
+
+          ${message.attachments?.length ? `
+            <div class="demo-sent-attachments">
+              ${message.attachments.map(file => `
+                <span class="demo-sent-attachment">${escapeHtml(file)} · DEMO</span>
+              `).join("")}
+            </div>
+          ` : ""}
 
           ${message.demo ? `
             <div class="message-note">
@@ -540,6 +560,7 @@ function render() {
   $("sendButton").disabled = !chat;
   $("continueConversationButton").disabled = !chat;
   closeContinueMenu();
+  if (typeof window.demoSyncMediaControls === "function") window.demoSyncMediaControls();
 
   $("typewriterToggle").textContent =
     state.typewriter ? "Typewriter ON" : "Typewriter OFF";
@@ -795,21 +816,29 @@ function demonstrationReply(agent, message) {
 function sendMessage() {
   const input = $("messageInput");
   const text = input.value.trim();
+  const chat = currentChat();
+  const hasAttachments = !!chat &&
+    typeof window.demoHasAttachments === "function" &&
+    window.demoHasAttachments(chat.id);
 
-  if (!text) return;
+  if (!text && !hasAttachments) return;
 
   if (text.length > 5000) {
     showToast("Demo messages are limited to 5,000 characters.");
     return;
   }
 
-  const chat = currentChat();
   if (!chat) return;
 
   finishTypewriter();
   if (typeof agentUiDismissMention === "function") agentUiDismissMention();
 
-  chat.messages.push(makeMessage("You", text, { demo: false }));
+  const attachments = typeof window.demoTakeAttachments === "function"
+    ? window.demoTakeAttachments(chat.id) : [];
+  chat.messages.push(makeMessage("You", text || "Attachment preview (demo only)", {
+    demo: false,
+    attachments
+  }));
   touchChat(chat);
 
   input.value = "";
@@ -854,7 +883,9 @@ function sendMessage() {
 
     const reply = makeMessage(
       agent,
-      demonstrationReply(agent, text),
+      attachments.length
+        ? "I can see the attachment names in this demonstration, but no files were opened, uploaded, or analyzed. In the real GRID.AI system, file access would require appropriate grants and review."
+        : demonstrationReply(agent, text),
       { demo: true }
     );
 
@@ -1344,6 +1375,7 @@ $("inviteButton").addEventListener("click", () => {
 const CONTINUE_DESTINATIONS = Object.freeze({
   glasses: "Even G2 Glasses",
   call: "Phone Call",
+  terminal: "Terminal",
   other: "Other"
 });
 

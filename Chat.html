@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="./styles/chat.css">
 <link rel="stylesheet" href="./styles/agent-ui.css">
 <link rel="stylesheet" href="./styles/workspace-ui.css">
+<link rel="stylesheet" href="./styles/connect-media-demo.css">
 </head>
 
 <body>
@@ -122,8 +123,35 @@
           placeholder="Message an agent..."
           rows="2"></textarea>
 
+        <div class="demo-attachment-tray hidden" id="demoAttachmentTray" aria-label="Selected demo attachments"></div>
         <div class="composer-bottom">
           <div class="composer-tools">
+            <div class="demo-composer-media">
+              <div class="demo-add-wrap" id="demoAddWrap">
+                <button class="demo-media-button demo-plus" id="demoAddAttachment" type="button"
+                        title="Add attachment preview" aria-label="Add attachment"
+                        aria-haspopup="menu" aria-expanded="false" disabled>+</button>
+                <div class="demo-add-menu hidden" id="demoAddMenu" role="menu"
+                     aria-label="Choose demo attachment">
+                  <div class="demo-add-heading">ATTACHMENT PREVIEW · NO FILES ACCESSED</div>
+                  <button class="demo-add-option" type="button" role="menuitem"
+                          data-demo-attachment="Sample-document.pdf">Sample document (.pdf)</button>
+                  <button class="demo-add-option" type="button" role="menuitem"
+                          data-demo-attachment="Project-notes.md">GRID workspace file (.md)</button>
+                  <button class="demo-add-option" type="button" role="menuitem"
+                          data-demo-attachment="Screenshot.png">Screenshot (.png)</button>
+                </div>
+              </div>
+              <button class="demo-media-button" id="demoVoiceInput" type="button"
+                      title="Voice input preview (no microphone)" aria-label="Voice input preview"
+                      aria-pressed="false" disabled>
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none"
+                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3"/>
+                  <path d="M5 10.5a7 7 0 0 0 14 0M12 17.5V22M8.5 22h7"/></svg>
+              </button>
+              <span class="demo-voice-state hidden" id="demoVoiceState">VOICE PREVIEW · MIC OFF</span>
+            </div>
             <div class="composer-label">
               <span>LOCAL PREVIEW</span> · Enter to send
             </div>
@@ -151,6 +179,8 @@
                         data-continue-target="glasses">Even G2 Glasses</button>
                 <button class="continue-option" type="button" role="menuitem"
                         data-continue-target="call">Phone Call</button>
+                <button class="continue-option" type="button" role="menuitem"
+                        data-continue-target="terminal">Terminal</button>
                 <button class="continue-option" type="button" role="menuitem"
                         data-continue-target="other">Other</button>
               </div>
@@ -286,5 +316,6 @@
 <script src="./scripts/chat.js"></script>
 <script src="./scripts/agent-ui.js"></script>
 <script src="./scripts/workspace-ui.js"></script>
+<script src="./scripts/connect-media-demo.js"></script>
 </body>
 </html>
