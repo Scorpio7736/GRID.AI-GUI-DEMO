@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="./styles/agent-ui.css">
 <link rel="stylesheet" href="./styles/workspace-ui.css">
 <link rel="stylesheet" href="./styles/connect-media-demo.css">
+<link rel="stylesheet" href="./styles/live-meeting-demo.css">
 </head>
 
 <body>
@@ -111,6 +112,39 @@
       </div>
     </header>
 
+    <div class="connect-workspace" id="connectWorkspace">
+      <section class="live-meeting-stage hidden" id="liveMeetingStage" aria-label="Live meeting visual preview">
+        <div class="live-meeting-header">
+          <div>
+            <div class="live-meeting-kicker"><span class="live-meeting-light" aria-hidden="true"></span> LIVE MEETING · UI DEMO</div>
+            <h2 id="liveMeetingTitle">Live agent meeting</h2>
+            <p>Agent voices and cameras are simulated. No microphone, camera or network connection is used.</p>
+          </div>
+          <div class="live-meeting-header-actions">
+            <span class="live-meeting-count" id="liveMeetingCount"></span>
+            <button class="live-action-button" id="liveChatToggle" type="button"
+                    aria-pressed="true" aria-controls="connectChatSide">Hide chat</button>
+          </div>
+        </div>
+        <div class="live-participant-grid" id="liveParticipantGrid" aria-label="Live meeting participants"></div>
+        <div class="live-meeting-activity" id="liveSpeakingStatus" role="status" aria-live="polite">
+          Awaiting a response · Select an agent tile to preview the speaking indicator.
+        </div>
+        <div class="live-meeting-toolbar" aria-label="Live meeting preview controls">
+          <button class="live-action-button" id="liveMicToggle" type="button" aria-pressed="false"
+                  title="Preview microphone state; no real microphone access">
+            <span aria-hidden="true">🎙</span> <span id="liveMicLabel">Mic off</span>
+          </button>
+          <button class="live-action-button" id="liveVideoToggle" type="button" aria-pressed="false"
+                  title="Preview camera state; no real camera access">
+            <span aria-hidden="true">▣</span> <span id="liveVideoLabel">Camera off</span>
+          </button>
+          <button class="live-action-button live-leave-button" id="liveLeaveButton" type="button">
+            <span aria-hidden="true">↩</span> Return to chat
+          </button>
+        </div>
+      </section>
+      <div class="connect-chat-side" id="connectChatSide">
     <section class="thread" id="thread" aria-label="Messages">
       <div class="thread-inner" id="messages"></div>
     </section>
@@ -204,6 +238,8 @@
         <span class="demo-voice-disclaimer">Voice input and AI voice playback will not work in this demo.</span>
       </div>
     </footer>
+      </div>
+    </div>
   </main>
 
   <div class="pane-resizer inspector-resizer" id="inspectorResizer" role="separator"
@@ -244,6 +280,13 @@
     <div class="info-row">
       <span class="key">Session type</span>
       <span class="value" id="infoType">None</span>
+    </div>
+
+    <div class="inspector-heading">Conversation mode</div>
+    <button class="secondary-button live-inspector-toggle" type="button"
+            id="toggleLiveMeeting" disabled>Start live meeting</button>
+    <div class="live-inspector-help" id="liveMeetingInspectorHelp">
+      Turn this conversation into a Teams-style live meeting preview. Chat history and participants stay the same.
     </div>
 
     <div class="inspector-heading">Participants · Demo status</div>
@@ -328,5 +371,6 @@
 <script src="./scripts/agent-ui.js"></script>
 <script src="./scripts/workspace-ui.js"></script>
 <script src="./scripts/connect-media-demo.js"></script>
+<script src="./scripts/live-meeting-demo.js"></script>
 </body>
 </html>

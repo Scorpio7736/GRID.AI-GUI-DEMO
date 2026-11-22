@@ -105,3 +105,9 @@ The chat composer has a **Continue conversation** dropdown next to **Send**, ena
 ## Continuous conversation grid
 
 The same subtle 40px GRID background is now rendered on the **entire center pane** for both private chats and agent meetings. The message thread and composer footer are transparent so the grid lines run continuously behind the message area, composer, and bottom caption to the viewport edge. The top header and actual message/composer cards retain their existing opaque surfaces, and the meeting-specific controls are unchanged.
+
+## Live meeting mode (Teams-inspired visual demo)
+
+In **Session details → Conversation mode**, select **Start live meeting** on an existing private chat or shared meeting. Connect preserves the same conversation ID, original participants, user messages, scripted agent replies, meeting privacy, attachments, and transcript; it only changes the presentation. The main viewport becomes a Teams-inspired stage with an audio-only participant tile for each agent (their existing avatar/profile picture, **no agent video feed**) and a Master Control placeholder tile. Agent tiles glow green when a new scripted reply arrives or when **Preview speaking** is clicked. Audio is not produced.
+
+The live stage offers **Hide chat / Show chat**, letting the user continue typing in the same conversation without leaving the preview. **Mic off / Camera off** are optional and default off; toggling them only changes the visible demo state and never requests microphone/camera access. **Return to chat** is available both in the call toolbar and the Session details button, preserving messages without ending/deleting the chat. Switching conversations restores each one's own local demo mode, and refreshing resets all demo state. No WebRTC, streaming, telephony, real voice, AI inference or actual video capture is implemented.

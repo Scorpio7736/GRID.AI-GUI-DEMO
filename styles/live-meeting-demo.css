@@ -1,0 +1,303 @@
+/* GRID.AI Connect · Live Meeting visual-only layout */
+/* Keep one shared transcript. The thread/composer are placed into the same
+   side pane only while viewing the Teams-style demo. */
+.connect-workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.connect-chat-side {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+}
+.live-meeting-stage {
+  display: none;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  padding: clamp(13px, 2vw, 26px);
+  gap: 17px;
+  overflow-y: auto;
+  background: linear-gradient(125deg, rgba(12,19,27,.55),rgba(8,12,18,.3));
+}
+.main.live-meeting-mode .connect-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  min-height: 0;
+}
+.main.live-meeting-mode .live-meeting-stage:not(.hidden) { display: flex; }
+.main.live-meeting-mode .connect-chat-side {
+  border-left: 1px solid #344451;
+  background: rgba(9,13,19,.91);
+}
+.main.live-meeting-mode.live-chat-hidden .connect-workspace {
+  grid-template-columns: minmax(0, 1fr);
+}
+.main.live-meeting-mode.live-chat-hidden .connect-chat-side {
+  display: none;
+}
+.live-meeting-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+.live-meeting-header h2 {
+  margin: 9px 0 5px;
+  color: var(--ivory);
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 650;
+  line-height: 1.25;
+}
+.live-meeting-header p {
+  max-width: 520px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.live-meeting-kicker {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: #f4cb54;
+  font: 10px var(--mono);
+  letter-spacing: 1.5px;
+}
+.live-meeting-light {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #db705e;
+  box-shadow: 0 0 11px rgba(219,112,94,.5);
+}
+.live-meeting-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+.live-meeting-count {
+  color: var(--muted);
+  font: 10px var(--mono);
+  white-space: nowrap;
+}
+.live-action-button {
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 13px;
+  border: 1px solid #48515b;
+  border-radius: 8px;
+  background: #1b232d;
+  color: #e8edf0;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.live-action-button:hover,
+.live-action-button:focus-visible {
+  background: #283442;
+  border-color: #967f4b;
+}
+.live-action-button.is-on {
+  border-color: #7d6b38;
+  background: #3b321c;
+  color: var(--gold);
+}
+.live-leave-button {
+  background: #4d2226;
+  border-color: #8a4446;
+  color: #ffe0dc;
+}
+.live-leave-button:hover { background: #703037; border-color: #b75a61; }
+.live-participant-grid {
+  flex: 1;
+  min-height: 160px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px),1fr));
+  grid-auto-rows: minmax(190px,1fr);
+  gap: 12px;
+  align-content: stretch;
+}
+.live-participant-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 190px;
+  min-width: 0;
+  overflow: hidden;
+  border: 2px solid #374450;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(46,66,80,.45), rgba(15,20,29,.96) 65%),
+    #121922;
+  box-shadow: inset 0 0 20px rgba(5,9,14,.4);
+  transition: border-color 210ms ease, box-shadow 210ms ease, background-color 210ms ease;
+}
+.live-participant-tile.is-speaking {
+  border-color: #7de4a8;
+  box-shadow: 0 0 0 2px rgba(79,216,145,.23), 0 0 25px rgba(66,202,145,.25);
+  background: radial-gradient(circle at 50% 35%, rgba(53,106,80,.44),#121b23 65%);
+}
+.live-participant-face {
+  position: relative;
+  margin-top: 3px;
+  display: grid;
+  place-items: center;
+  height: 110px;
+  width: 110px;
+}
+.live-participant-face .agent-portrait {
+  height: 94px;
+  width: 94px;
+  flex: 0 0 94px;
+  border-radius: 50%;
+  border: 2px solid #8e7751;
+  overflow: hidden;
+}
+.live-participant-face .agent-portrait img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+.live-participant-face .portrait-initials { font-size: 22px; }
+.live-participant-tile.is-speaking .live-participant-face .agent-portrait {
+  border-color: #91ecc1;
+  box-shadow: 0 0 22px rgba(111,227,164,.3);
+}
+.live-participant-pulse {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  pointer-events: none;
+}
+.live-participant-tile.is-speaking .live-participant-pulse {
+  border-color: #83e9b7;
+  animation: live-agent-speaking 1000ms ease-in-out infinite;
+}
+.live-participant-name {
+  margin-top: 8px;
+  color: var(--ivory);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .1px;
+}
+.live-participant-role {
+  margin-top: 3px;
+  color: #9cabba;
+  font-size: 11px;
+}
+.live-speaking-label {
+  margin-top: 7px;
+  color: #8be4ae;
+  font: 10px var(--mono);
+  opacity: 0;
+  min-height: 12px;
+}
+.live-participant-tile.is-speaking .live-speaking-label { opacity: 1; }
+.live-preview-speak {
+  margin-top: 10px;
+  padding: 6px 9px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #98a7b6;
+  background: transparent;
+  font: 10px var(--mono);
+}
+.live-preview-speak:hover, .live-preview-speak:focus-visible {
+  border-color: #665635;
+  color: var(--gold);
+}
+.live-user-tile .live-user-avatar {
+  width: 88px;
+  height: 88px;
+  border: 2px solid #636e7e;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #28313d;
+  color: #f1f1ef;
+  font: 700 25px var(--mono);
+}
+.live-user-tile .live-participant-face { margin-bottom: 0; }
+.live-meeting-activity {
+  border: 1px solid #35404b;
+  border-radius: 8px;
+  background: rgba(14,20,27,.9);
+  color: #a8b6c3;
+  padding: 10px 13px;
+  font: 11px var(--mono);
+  text-align: center;
+}
+.live-meeting-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.live-inspector-toggle { width: 100%; text-align: center; }
+.live-inspector-help {
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.main.live-meeting-mode .thread {
+  padding: 17px 13px;
+  min-height: 0;
+}
+.main.live-meeting-mode .thread-inner { max-width: 100%; }
+.main.live-meeting-mode .message { gap: 7px; margin-bottom: 15px; }
+.main.live-meeting-mode .message-body { max-width: min(100%, 88%); }
+.main.live-meeting-mode .bubble { padding: 10px 12px; font-size: 11px; line-height: 1.55; }
+.main.live-meeting-mode .message-avatar { width: 29px; height: 29px; }
+.main.live-meeting-mode .composer-wrap { padding: 10px 11px 13px; border-top: 1px solid #344451; }
+.main.live-meeting-mode .composer-bottom { flex-wrap: wrap; }
+.main.live-meeting-mode .composer-tools .composer-label,
+.main.live-meeting-mode .composer-tools .tool-toggle,
+.main.live-meeting-mode #continueControl { display: none; }
+.main.live-meeting-mode .composer-caption { font-size: 9px; line-height: 1.5; }
+@keyframes live-agent-speaking {
+  0% { transform: scale(.95); opacity: .45; }
+  50% { transform: scale(1.1); opacity: .9; }
+  100% { transform: scale(.95); opacity: .45; }
+}
+.app.motion-disabled .live-participant-pulse { animation: none !important; }
+@media (max-width: 1050px) {
+  .main.live-meeting-mode .connect-workspace {
+    grid-template-columns: minmax(0,1fr) minmax(285px,310px);
+  }
+}
+@media (max-width: 750px) {
+  .main.live-meeting-mode .connect-workspace {
+    grid-template-columns: minmax(0,1fr);
+    grid-template-rows: minmax(275px,1fr) minmax(165px,40%);
+  }
+  .main.live-meeting-mode .connect-chat-side {
+    border-left: 0;
+    border-top: 1px solid #344451;
+  }
+  .main.live-meeting-mode.live-chat-hidden .connect-workspace {
+    grid-template-rows: minmax(0,1fr);
+  }
+  .live-meeting-stage { padding: 13px; gap: 11px; }
+  .live-meeting-header { gap: 9px; flex-wrap: wrap; }
+  .live-participant-grid { min-height: 110px; grid-auto-rows: minmax(145px,1fr); }
+  .live-participant-tile { min-height: 145px; }
+  .live-meeting-toolbar { gap: 6px; }
+  .live-action-button { padding: 8px 10px; font-size: 11px; }
+  .live-participant-face { width: 73px; height: 73px; }
+  .live-participant-face .agent-portrait { width: 60px; height: 60px; flex-basis: 60px; }
+  .live-user-tile .live-user-avatar { width: 60px; height: 60px; font-size: 18px; }
+}
