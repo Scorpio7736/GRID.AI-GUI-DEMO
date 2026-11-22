@@ -45,6 +45,7 @@ Open `Chat.html` or `Workflow-Designer.html` directly to view an individual demo
 
 - `styles/agent-ui.css` and `scripts/agent-ui.js` extend the Connect prototype with participant portraits and activity-derived **demo status indicators** without separate status buttons.
 - MCP, MAXIS, TRON, and JN use the headshots under `Programs/Agents/` in all Connect portrait surfaces, including chat, participants, and Live Meetings. VOLT and RELAY continue to show initials until their headshot files are added.
+- Compact Connect headshots stay inside their frames without cropping the outside status dots. Workflow Designer also uses MCP's headshot in its chat header and message bubbles.
 - The centered participant bar offers **Remove from meeting**, **Whisper to**, and **Move to new chat**.
 - Whispers are held separately per meeting/agent in memory and are intentionally excluded from meeting TXT/MD context exports.
 - All displayed statuses, agent replies, and whispers are browser-local simulations; no live agent/host connection exists.

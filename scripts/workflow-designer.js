@@ -236,7 +236,14 @@
   function message(author, body) {
     const isUser = author === "user";
     const wrap = el("div", "chat-message " + (isUser ? "user-message" : "assistant-message"));
-    const avatar = el("div", "message-avatar", isUser ? "YOU" : "MCP");
+    const avatar = el("div", "message-avatar", isUser ? "YOU" : undefined);
+    if (!isUser) {
+      const portrait = el("img");
+      portrait.src = "./Programs/Agents/MCP/MCP_HEADSHOT.png";
+      portrait.alt = "";
+      portrait.decoding = "async";
+      avatar.append(portrait);
+    }
     const column = el("div", "message-column");
     const heading = el("div", "message-author", isUser ? "You" : "MCP");
     if (!isUser) heading.append(el("span", "", " · COORDINATOR"));
