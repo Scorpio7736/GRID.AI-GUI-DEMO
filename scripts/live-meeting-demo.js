@@ -503,6 +503,7 @@
     const chat = currentChat();
     if (chat?.liveMeeting && chat.liveChatVisible === false) {
       unreadNotifications.add(chat.id);
+      window.gridUiSound?.("notification");
       syncLiveMeeting();
     }
   };
