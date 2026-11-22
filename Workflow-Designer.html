@@ -23,6 +23,19 @@
       <div class="sidebar-info"><span class="sidebar-info-icon" aria-hidden="true">◉</span><div><strong>Local design preview</strong><small>Scripted MCP responses</small></div></div>
       <div class="sidebar-info"><span class="sidebar-info-icon" aria-hidden="true">◇</span><div><strong>Blueprint builder</strong><small>No external actions</small></div></div>
 
+      <section class="workflow-library" id="workflowLibrary" aria-label="Workflow library">
+        <div class="workflow-library-heading">
+          <span>ACTIVE WORKFLOWS</span><span class="workflow-library-count" id="activeWorkflowCount">0</span>
+        </div>
+        <p class="workflow-library-caption">Status preview only · no jobs running</p>
+        <div class="workflow-library-list" id="activeWorkflowList" aria-label="Simulated active workflows" aria-live="polite"></div>
+        <div class="workflow-library-heading workflow-library-secondary">
+          <span>SAVED BLUEPRINTS</span><span class="workflow-library-count" id="savedWorkflowCount">0</span>
+        </div>
+        <div class="workflow-library-list" id="savedWorkflowList" aria-label="Saved workflow blueprints" aria-live="polite"></div>
+        <p class="workflow-library-footnote">Stored only in this browser. No GRID.AI backend connection.</p>
+      </section>
+
       <div class="sidebar-promo">
         <span class="promo-kicker">GRID.AI / PREVIEW 01</span>
         <div class="promo-symbol" aria-hidden="true">⌘</div>
@@ -43,7 +56,8 @@
       <div class="topbar-actions">
         <span class="demo-pill"><span class="demo-pulse" aria-hidden="true"></span> UI DEMO</span>
         <button class="toolbar-button" id="resetFlow" type="button" title="Start a new workflow">↺ <span>New draft</span></button>
-        <button class="toolbar-button primary-action" id="exportJson" type="button" title="Download the workflow as JSON">⇩ <span>Export JSON</span></button>
+        <button class="toolbar-button primary-action" id="saveWorkflow" type="button" title="Save the current blueprint in this browser" disabled>▣ <span>Save workflow</span></button>
+        <button class="toolbar-button" id="exportJson" type="button" title="Download the workflow as JSON">⇩ <span>Export JSON</span></button>
       </div>
     </header>
 

@@ -204,3 +204,9 @@ The repository root currently opens a **GRID.AI demo-hub placeholder** with no p
 - A few conversational refinements are supported as a demo: add/remove approval, change schedule, assign a specialist, rename a flow, or update the delivery step.
 - Select a generated node to edit its title, instructions, and assigned agent; insert, reorder, or remove processing steps. **Preview run** animates the nodes without executing anything.
 - **Export JSON** downloads a clearly labeled non-executable blueprint. **New draft** resets the canvas. Designs and conversation state are kept in memory and reset on refresh. No integrations, scheduler, runtime, AI inference, host operations, or real notifications are connected.
+
+## Workflow library (browser-only)
+
+The Workflow Designer now has an **Active Workflows** preview list and a **Saved Blueprints** library in the sidebar. **Save workflow** stores a draft locally using browser `localStorage`, with Open, Activate/Pause preview, and Delete controls. Editing a loaded design requires **Save changes** to update the saved copy. Saving and preview activation **never run an agent, register a job, or schedule a task**; the active status is purely cosmetic. The workflow library persists across refreshes in the same browser (unless local storage is unavailable, private browsing clears it, or the user deletes site data). Chat transcripts remain ephemeral.
+
+The MCP conversation and workflow canvas panels stretch to a consistent height on desktop, replacing the old viewport-based cap on the chat panel. The operator sidebar remains visible during long blueprints and scrolls its saved-workflow lists separately. Preview deployments are disabled in Vercel; these source changes do not require a preview deployment.

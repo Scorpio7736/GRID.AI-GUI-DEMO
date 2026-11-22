@@ -19,7 +19,7 @@
     approval: {icon: "◆", label: "APPROVAL"},
     action: {icon: "↗", label: "OUTPUT"}
   });
-  const state = {flow: null, selectedStepId: null, revision: 0, nextStepId: 1, pendingReply: false, runTimer: null, runToken: 0};
+  const state = {flow: null, selectedStepId: null, revision: 0, nextStepId: 1, pendingReply: false, runTimer: null, runToken: 0, savedWorkflows: [], currentSavedId: null, dirty: false};
   let toastTimer = null;
 
   function el(tag, className, text) {
@@ -35,6 +35,192 @@
     toast.classList.add("show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove("show"), 2800);
+  }
+
+
+  // Saved blueprints persist across refreshes in this browser only.
+  // "Active" is a UI preview status, never a real agent or scheduled task.
+  const WORKFLOW_STORAGE_KEY = "gridai-workflow-designer-library-v1";
+  const MAX_LIBRARY_ENTRIES = 24;
+
+  function readWorkflowLibrary() {
+    try {
+      const value = JSON.parse(window.localStorage.getItem(WORKFLOW_STORAGE_KEY) || "null");
+      if (!value || value.version !== 1 || !Array.isArray(value.workflows)) return [];
+      return value.workflows.filter(item =>
+        item && typeof item.id === "string" &&
+        typeof item.name === "string" &&
+        (item.status === "active" || item.status === "saved") &&
+        item.flow && typeof item.flow === "object" &&
+        typeof item.flow.trigger === "string" &&
+        Array.isArray(item.flow.steps) && item.flow.steps.length > 0 &&
+        item.flow.steps.length <= 200 &&
+        item.flow.steps.every(step => step && typeof step.id === "string" &&
+          typeof step.kind === "string" && KINDS[step.kind] &&
+          typeof step.title === "string" && typeof step.description === "string" &&
+          typeof step.agent === "string")
+      ).slice(0, MAX_LIBRARY_ENTRIES);
+    } catch {
+      return [];
+    }
+  }
+
+  function storeWorkflowLibrary(next) {
+    try {
+      window.localStorage.setItem(WORKFLOW_STORAGE_KEY,
+        JSON.stringify({version: 1, workflows: next}));
+    } catch {
+      notify("Unable to save: browser storage is unavailable or full.");
+      return false;
+    }
+    state.savedWorkflows = next;
+    return true;
+  }
+
+  function cloneBlueprint(flow) {
+    return JSON.parse(JSON.stringify(flow));
+  }
+
+  function workflowCard(record) {
+    const card = el("article", "stored-workflow-card" +
+      (record.status === "active" ? " is-active" : "") +
+      (record.id === state.currentSavedId ? " is-selected" : ""));
+    const name = el("button", "stored-workflow-name", record.name || "Untitled workflow");
+    name.type = "button";
+    name.dataset.workflowAction = "open";
+    name.dataset.workflowId = record.id;
+    name.title = "Open this saved blueprint";
+    const info = el("div", "stored-workflow-meta",
+      String(record.flow.steps.length) + " steps · " + record.flow.trigger);
+    const status = el("div", "stored-workflow-status",
+      record.status === "active" ? "ACTIVE PREVIEW" : "SAVED DESIGN");
+    const actions = el("div", "stored-workflow-actions");
+    const buttonSpec = [
+      ["open", "Open", ""],
+      ["toggle", record.status === "active" ? "Pause" : "Activate", "workflow-activate"],
+      ["delete", "Delete", "workflow-remove"]
+    ];
+    for (const [action, label, className] of buttonSpec) {
+      const button = el("button", className, label);
+      button.type = "button";
+      button.dataset.workflowAction = action;
+      button.dataset.workflowId = record.id;
+      button.setAttribute("aria-label", label + " " + record.name);
+      actions.appendChild(button);
+    }
+    card.append(name, info, status, actions);
+    return card;
+  }
+
+  function drawWorkflowLibrary() {
+    const active = state.savedWorkflows.filter(item => item.status === "active");
+    const saved = state.savedWorkflows.filter(item => item.status !== "active");
+    $("activeWorkflowCount").textContent = String(active.length);
+    $("savedWorkflowCount").textContent = String(saved.length);
+    const activeList = $("activeWorkflowList");
+    const savedList = $("savedWorkflowList");
+    activeList.replaceChildren(...(active.length ?
+      active.map(workflowCard) :
+      [el("p", "workflow-empty", "No active previews. Activate a saved design below to show it here.")]));
+    savedList.replaceChildren(...(saved.length ?
+      saved.map(workflowCard) :
+      [el("p", "workflow-empty", "No saved blueprints yet. Build a workflow with MCP, then choose Save workflow.")]));
+  }
+
+  function updateSaveControl() {
+    const button = $("saveWorkflow");
+    const label = button.querySelector("span");
+    button.disabled = !state.flow || (Boolean(state.currentSavedId) && !state.dirty);
+    label.textContent = !state.flow ? "Save workflow" :
+      !state.currentSavedId ? "Save workflow" :
+      state.dirty ? "Save changes" : "Saved";
+    button.title = "Save the blueprint to this browser only; no automation is started";
+  }
+
+  function saveCurrentWorkflow() {
+    if (!state.flow || state.pendingReply) {
+      notify("Create a workflow blueprint before saving.");
+      return;
+    }
+    if (!state.currentSavedId && state.savedWorkflows.length >= MAX_LIBRARY_ENTRIES) {
+      notify("Workflow library is full. Delete a saved design to make space.");
+      return;
+    }
+    const id = state.currentSavedId ||
+      ("flow-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8));
+    const index = state.savedWorkflows.findIndex(item => item.id === id);
+    const previous = index < 0 ? null : state.savedWorkflows[index];
+    const date = new Date().toISOString();
+    const updated = {
+      id,
+      name: state.flow.name,
+      status: previous ? previous.status : "saved",
+      flow: cloneBlueprint(state.flow),
+      revision: state.revision,
+      createdAt: previous ? previous.createdAt : date,
+      updatedAt: date
+    };
+    const next = index < 0 ?
+      [updated, ...state.savedWorkflows] :
+      state.savedWorkflows.map(item => item.id === id ? updated : item);
+    if (!storeWorkflowLibrary(next)) return;
+    state.currentSavedId = id;
+    state.dirty = false;
+    render();
+    drawWorkflowLibrary();
+    notify(previous ? "Changes saved to this browser" : "Blueprint saved — activate its preview in the sidebar");
+  }
+
+  function openSavedWorkflow(record) {
+    if (state.dirty && state.flow &&
+        !window.confirm("Discard unsaved draft changes and open this saved blueprint?")) return;
+    stopPreview();
+    state.flow = cloneBlueprint(record.flow);
+    state.currentSavedId = record.id;
+    state.selectedStepId = null;
+    state.revision = Number.isSafeInteger(record.revision) ? record.revision : 1;
+    state.dirty = false;
+    for (const step of state.flow.steps) {
+      const match = /^step-(\d+)$/.exec(step.id);
+      if (match) state.nextStepId = Math.max(state.nextStepId, Number(match[1]) + 1);
+    }
+    render();
+    drawWorkflowLibrary();
+    message("MCP", "Loaded your saved blueprint “" + record.name +
+      ".” You can edit the steps and save changes. This is still a design-only preview.");
+    notify("Saved blueprint opened");
+  }
+
+  function handleWorkflowLibraryAction(action, id) {
+    const record = state.savedWorkflows.find(item => item.id === id);
+    if (!record) return;
+    if (action === "open") {
+      openSavedWorkflow(record);
+      return;
+    }
+    if (action === "toggle") {
+      const status = record.status === "active" ? "saved" : "active";
+      const next = state.savedWorkflows.map(item => item.id === id ?
+        {...item, status, updatedAt: new Date().toISOString()} : item);
+      if (!storeWorkflowLibrary(next)) return;
+      drawWorkflowLibrary();
+      notify(status === "active" ?
+        "Active preview enabled — no schedule or agent has started" :
+        "Preview paused — no workflow was running");
+      return;
+    }
+    if (action === "delete") {
+      if (!window.confirm("Delete saved blueprint “" + record.name + "” from this browser?")) return;
+      const next = state.savedWorkflows.filter(item => item.id !== id);
+      if (!storeWorkflowLibrary(next)) return;
+      if (state.currentSavedId === id) {
+        state.currentSavedId = null;
+        state.dirty = Boolean(state.flow);
+        render();
+      }
+      drawWorkflowLibrary();
+      notify("Saved blueprint deleted from this browser");
+    }
   }
 
   function newStep(kind, agent, title, description) {
@@ -220,7 +406,8 @@
     const flow = state.flow;
     $("emptyCanvas").hidden = Boolean(flow);
     $("flowSteps").hidden = !flow;
-    $("draftTag").textContent = flow ? "EDITABLE DRAFT" : "AWAITING INPUT";
+    $("draftTag").textContent = !flow ? "AWAITING INPUT" :
+      state.currentSavedId ? (state.dirty ? "UNSAVED CHANGES" : "SAVED BLUEPRINT") : "EDITABLE DRAFT";
     $("flowTitle").textContent = flow ? flow.name : "Your workflow starts here";
     $("flowDescription").textContent = flow ? flow.description : "Tell MCP what you want to automate and a proposed plan will appear below.";
     $("metricSteps").textContent = flow ? flow.steps.length : "0";
@@ -229,6 +416,7 @@
     $("addStep").disabled = !flow;
     $("previewRun").disabled = !flow;
     $("footerVersion").textContent = "v0." + state.revision;
+    updateSaveControl();
     renderSteps();
     renderInspector();
   }
@@ -263,6 +451,7 @@
   function commitRevision() {
     stopPreview();
     state.revision++;
+    state.dirty = true;
     render();
   }
 
@@ -331,6 +520,8 @@
       return;
     }
     state.flow = workflowFromPrompt(text);
+    state.currentSavedId = null;
+    state.revision = 0;
     state.selectedStepId = null;
     commitRevision();
     message("MCP",
@@ -462,11 +653,19 @@
   });
   $("previewRun").addEventListener("click", previewRun);
   $("exportJson").addEventListener("click", exportWorkflow);
+  $("saveWorkflow").addEventListener("click", saveCurrentWorkflow);
+  $("workflowLibrary").addEventListener("click", event => {
+    const button = event.target.closest("[data-workflow-action]");
+    if (!button) return;
+    handleWorkflowLibraryAction(button.dataset.workflowAction, button.dataset.workflowId);
+  });
   $("resetFlow").addEventListener("click", () => {
-    if (state.flow && !window.confirm("Start a new workflow? The current unsaved blueprint will be cleared.")) return;
+    if (state.flow && state.dirty && !window.confirm("Discard unsaved changes and start a new draft?")) return;
     stopPreview();
     state.flow = null;
     state.selectedStepId = null;
+    state.currentSavedId = null;
+    state.dirty = false;
     state.revision = 0;
     render();
     message("MCP", "New draft started. What should we automate next?");
@@ -483,7 +682,10 @@
     step.title = event.target.value;
     $("selectedStepHeading").textContent = step.title || "Untitled step";
     state.revision++;
+    state.dirty = true;
     $("footerVersion").textContent = "v0." + state.revision;
+    $("draftTag").textContent = state.currentSavedId ? "UNSAVED CHANGES" : "EDITABLE DRAFT";
+    updateSaveControl();
     renderSteps();
   });
   $("editStepDescription").addEventListener("input", event => {
@@ -491,7 +693,10 @@
     if (!step) return;
     step.description = event.target.value;
     state.revision++;
+    state.dirty = true;
     $("footerVersion").textContent = "v0." + state.revision;
+    $("draftTag").textContent = state.currentSavedId ? "UNSAVED CHANGES" : "EDITABLE DRAFT";
+    updateSaveControl();
     renderSteps();
   });
   $("editStepAgent").addEventListener("change", event => {
@@ -510,5 +715,7 @@
     commitRevision();
     notify("Step removed from draft");
   });
+  state.savedWorkflows = readWorkflowLibrary();
+  drawWorkflowLibrary();
   render();
 })();
