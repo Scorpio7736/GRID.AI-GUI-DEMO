@@ -209,3 +209,25 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible,
 @media(max-width:1050px){.studio-grid{grid-template-columns:minmax(0,1fr)}.mcp-panel{position:static;max-height:none;min-height:600px}.mcp-messages{min-height:290px;max-height:410px}.blueprint-panel{min-height:600px}.workflow-canvas{min-height:330px}.sidebar-promo{display:none}}
 @media(max-width:710px){.designer-shell{display:block}.studio-sidebar{min-height:0;border-right:0;border-bottom:1px solid var(--line);display:block}.studio-brand{height:62px;padding:10px 16px;border:0}.brand-mark{width:35px;height:35px;font-size:25px}.brand-copy strong{font-size:16px}.brand-copy small{font-size:8px}.sidebar-content{display:flex;flex-direction:row;padding:0 13px 12px;gap:6px}.nav-label,.sidebar-info,.sidebar-operator{display:none}.studio-nav-link{min-height:35px;font-size:11px;padding:0 10px}.nav-icon{font-size:15px;width:auto}.studio-topbar{height:auto;min-height:60px;padding:10px 14px;flex-wrap:wrap;gap:9px}.topbar-actions{gap:5px}.demo-pill{display:none}.toolbar-button{font-size:11px;min-height:32px;padding:0 9px}.studio-intro{padding:25px 16px 18px}.studio-intro h1{font-size:28px}.studio-intro p{font-size:12px}.studio-grid{padding:0 12px 22px;gap:15px}.panel-heading{padding:15px}.blueprint-summary{padding:15px}.canvas-toolbar{padding:12px 11px;flex-wrap:wrap}.canvas-tools{margin-left:auto}.canvas-title{font-size:9px}.flow-list{padding:21px 12px}.flow-node{padding:11px;gap:9px}.node-icon{width:33px;height:33px}.node-description{font-size:10px}.editor-grid{grid-template-columns:1fr}.field-wide{grid-column:auto}.summary-metrics{grid-template-columns:1fr 1fr 1.3fr}.metric{padding:9px}.mcp-panel{min-height:550px}.mcp-messages{min-height:260px}.blueprint-panel{min-height:570px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* Clearly distinguish simulated traversal stages during Preview run. */
+.flow-node.is-running {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px #f4cb542d, 0 0 24px #f4cb5424;
+  animation: workflow-step-focus .65s ease-in-out infinite alternate;
+}
+.flow-node.is-complete {
+  border-color: #4b765c;
+  background: linear-gradient(120deg,#1a2b24,#14201b);
+}
+.flow-node.is-complete .node-icon {
+  border-color: #4d8162;
+  background: #193a28;
+  color: #9ce6b7;
+}
+.pending-message .message-bubble { color: #bbad87; animation: mcp-drafting 1s ease-in-out infinite alternate; }
+@keyframes workflow-step-focus { from { box-shadow: 0 0 0 1px #f4cb542a; } to { box-shadow: 0 0 0 3px #f4cb5440,0 0 24px #f4cb542c; } }
+@keyframes mcp-drafting { from { opacity: .65; } to { opacity: 1; } }
+@media(prefers-reduced-motion:reduce) {
+  .flow-node.is-running,.pending-message .message-bubble { animation: none; }
+}
