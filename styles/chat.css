@@ -1383,3 +1383,18 @@ textarea:focus-visible {
   .sound-toggle { padding: 6px 8px; font-size: 9px; }
 }
 
+
+/* Direct access to the standalone Workflow Studio from Connect. */
+.workflow-designer-launch {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  justify-content: flex-start;
+  text-decoration: none;
+  background: #211f1b;
+  border-color: #5b4a2c;
+  color: #f0d892;
+  font-size: 12px;
+}
+.workflow-designer-launch:hover { background: #342c1e; border-color: #ae8e49; }
+.workflow-launch-arrow { margin-left: auto; color: #9f8d65; }
