@@ -97,7 +97,7 @@ The chat composer has a **Continue conversation** dropdown next to **Send**, ena
 ## Connect composer media controls (visual demonstration)
 
 - **Continue conversation → Terminal** joins Even G2 Glasses, Phone Call and Other. Choosing any destination produces a simulated handoff notification and does not launch a terminal or connect a device.
-- The **+** button now opens **Add files** and **Add link**. Add files offers three labeled sample-file previews; Add link accepts an HTTP(S) URL as text and displays a removable link chip. Sending includes only those labels in the temporary transcript. No files are read or uploaded, and links are never requested or opened.
+- The **+** button now opens **Add files** and **Add link**. Add files immediately adds a generic, removable **File attachment · DEMO** chip without asking for a type; Add link accepts an HTTP(S) URL as text and displays a removable link chip. Sending includes only those labels in the temporary transcript. No files are read or uploaded, and links are never requested or opened.
 - A persistent note beneath the composer explicitly says **Voice input and AI voice playback will not work in this demo.** The microphone button toggles only a visual voice-input preview; it does not request microphone access or perform speech recognition.
 - Every agent response includes a **speaker icon** that briefly animates a silent AI-voice playback preview. It does not play audio or synthesize speech.
 - All preview state is local to the current page. No real GRID.AI backend, speech engine, device or file integration is used.

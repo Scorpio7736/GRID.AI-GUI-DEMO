@@ -8,17 +8,15 @@
   const attachMenu = get("demoAddMenu");
   const attachTray = get("demoAttachmentTray");
   const menuRoot = get("demoAddMenuRoot");
-  const filesPane = get("demoAddFilesPane");
   const linkPane = get("demoAddLinkPane");
   const linkInput = get("demoLinkInput");
   const linkConfirm = get("demoAddLinkConfirm");
   const micButton = get("demoVoiceInput");
   const micState = get("demoVoiceState");
   const messageRoot = get("messages");
-  if (!attachButton || !attachMenu || !attachTray || !menuRoot || !filesPane ||
+  if (!attachButton || !attachMenu || !attachTray || !menuRoot ||
       !linkPane || !linkInput || !linkConfirm || !micButton || !micState || !messageRoot) return;
 
-  const sampleNames = new Set(["Sample-document.pdf", "Project-notes.md", "Screenshot.png"]);
   const previewsByChat = new Map();
   let simulatedListening = false;
   let lastChatId = null;
@@ -27,7 +25,6 @@
 
   function showAddPane(which = "root") {
     menuRoot.classList.toggle("hidden", which !== "root");
-    filesPane.classList.toggle("hidden", which !== "files");
     linkPane.classList.toggle("hidden", which !== "link");
     if (which === "link") linkInput.focus();
   }
@@ -114,25 +111,25 @@
   attachMenu.addEventListener("click", event => {
     const action = event.target.closest("[data-demo-add-action]");
     if (action && currentChat()) {
-      showAddPane(action.dataset.demoAddAction);
+      if (action.dataset.demoAddAction === "link") {
+        showAddPane("link");
+      } else if (action.dataset.demoAddAction === "files") {
+        // Visual demo only: add a generic file chip, not a real file picker
+        // or a submenu that asks the user to choose a file type.
+        const id = currentChat().id;
+        const items = previewsByChat.get(id) || [];
+        if (!items.includes("File attachment")) items.push("File attachment");
+        previewsByChat.set(id, items);
+        closeAttachmentMenu(true);
+        drawAttachmentChips();
+        showToast("File attachment added (demo preview only). No file was accessed.");
+      }
       return;
     }
     if (event.target.closest("[data-demo-add-back]")) {
       showAddPane();
-      attachMenu.querySelector('[data-demo-add-action="files"]')?.focus();
-      return;
+      attachMenu.querySelector('[data-demo-add-action="link"]')?.focus();
     }
-    const item = event.target.closest("[data-demo-attachment]");
-    if (!item || !currentChat()) return;
-    const filename = item.dataset.demoAttachment;
-    if (!sampleNames.has(filename)) return;
-    const id = currentChat().id;
-    const files = previewsByChat.get(id) || [];
-    if (!files.includes(filename)) files.push(filename);
-    previewsByChat.set(id, files);
-    closeAttachmentMenu(true);
-    drawAttachmentChips();
-    showToast("Added " + filename + " (sample preview only). No file was opened.");
   });
 
   function addLinkPreview() {
