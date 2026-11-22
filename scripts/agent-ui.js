@@ -2,10 +2,13 @@
 
 // Visual extension: automatically derived demo presence, portraits, meeting controls and whispers.
 // Loaded after chat.js to preserve the existing Connect conversation logic.
-const AGENT_UI_PHOTOS = {
-  MCP: "./Programs/Agents/MCP/MCP_HEADSHOT.png"
-  // Add other agent image paths here when those assets exist.
-};
+const AGENT_UI_PHOTOS = Object.freeze({
+  MCP: "./Programs/Agents/MCP/MCP_HEADSHOT.png",
+  MAXIS: "./Programs/Agents/Maxis/MAXIS_HEADSHOT.png",
+  TRON: "./Programs/Agents/TRON/TRON_HEADSHOT.png",
+  JN: "./Programs/Agents/JN/JN_HEADSHOT.png"
+  // VOLT and RELAY use initials until headshot assets are added.
+});
 const AGENT_UI_STATUSES = [
   { id: "available", label: "Available" },
   { id: "background", label: "Working in the background" },
