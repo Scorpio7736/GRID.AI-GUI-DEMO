@@ -183,3 +183,12 @@ The topbar offers **♫ Sounds ON / ♪ Sounds OFF**, available in both regular 
 ## Preparing free subdomain hosting
 
 The repository root now opens **GRID.AI Connect** through a same-directory redirect to `Chat.html`, rather than the former placeholder. It can be deployed independently from the main portfolio as a static Vercel project linked to this public GitHub repository. The proposed custom hostname is `gridai-demo.jacklondon.site`. This repository does **not** contain DNS configuration; the subdomain must be assigned to the hosting project and verified with the DNS provider separately. Opening the project on Vercel should not alter the main `jacklondon.site` project's routing.
+
+## Agentic Workflow Designer (standalone UI prototype)
+
+- Open `Workflow-Designer.html` directly or follow **Agentic Workflow Designer** from the Connect sidebar. The page loads `styles/workflow-designer.css` and `scripts/workflow-designer.js` independently from Connect.
+- The responsive workspace pairs **Design with MCP**, a scripted planning conversation, with a **Workflow Blueprint** canvas that displays ordered trigger, processing, approval, and output nodes.
+- Four quick-start prompts generate example plans for engineering briefings, pull request reviews, file organization, and resource monitoring. Other prompts create a generic customizable plan. The browser-side responses use keyword matching, **not a live AI model**.
+- A few conversational refinements are supported as a demo: add/remove approval, change schedule, assign a specialist, rename a flow, or update the delivery step.
+- Select a generated node to edit its title, instructions, and assigned agent; insert, reorder, or remove processing steps. **Preview run** animates the nodes without executing anything.
+- **Export JSON** downloads a clearly labeled non-executable blueprint. **New draft** resets the canvas. Designs and conversation state are kept in memory and reset on refresh. No integrations, scheduler, runtime, AI inference, host operations, or real notifications are connected.
