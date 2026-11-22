@@ -311,23 +311,31 @@
   }
 }
 
-/* Fade the conversation workspace on thread changes, including header,
-   messages, composer and session metadata. No fade on regular message sends. */
-.app .main {
+/* Only the content that actually changes between chats fades.
+   The topbar itself, its actions, the composer, and surrounding layout
+   remain stationary, so changing chats never blanks the whole workspace. */
+.app #conversationTitle,
+.app #conversationSubtitle,
+.app #headerParticipants,
+.app #messages {
   opacity: 1;
   transform: translateY(0);
   transition:
     opacity 210ms ease,
     transform 210ms cubic-bezier(.22, 1, .36, 1);
 }
-.app .main.chat-switch-out {
+.app.chat-switch-out #conversationTitle,
+.app.chat-switch-out #conversationSubtitle,
+.app.chat-switch-out #headerParticipants,
+.app.chat-switch-out #messages {
   opacity: 0;
   transform: translateY(6px);
-  pointer-events: none;
   transition:
     opacity 165ms ease-in,
     transform 165ms ease-in;
 }
+.app.chat-switch-out #messages { pointer-events: none; }
+
 .app .inspector > :not(.inspector-title) {
   transition: opacity 210ms ease, transform 210ms ease;
 }
@@ -335,8 +343,10 @@
   opacity: 0;
   transform: translateY(4px);
 }
-.app.motion-disabled .main,
-.app.motion-disabled .main.chat-switch-out,
+.app.motion-disabled #conversationTitle,
+.app.motion-disabled #conversationSubtitle,
+.app.motion-disabled #headerParticipants,
+.app.motion-disabled #messages,
 .app.motion-disabled .inspector > :not(.inspector-title),
 .app.motion-disabled .sidebar,
 .app.motion-disabled .inspector {
@@ -369,4 +379,18 @@
   opacity: 1 !important;
   transform: none !important;
   filter: none !important;
+}
+
+/* First-page entrance for the empty conversation view. Reused once when the
+   user's first actual chat or meeting is created in an in-memory session. */
+@keyframes grid-first-chat-arrive {
+  from { opacity: 0; transform: translateY(15px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.app #messages.chat-first-entrance {
+  animation: grid-first-chat-arrive 780ms cubic-bezier(.22, 1, .36, 1) both;
+  animation-delay: 170ms;
+}
+.app.motion-disabled #messages.chat-first-entrance {
+  animation: none !important;
 }

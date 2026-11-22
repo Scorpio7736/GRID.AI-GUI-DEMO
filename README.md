@@ -76,3 +76,8 @@ The Connect GUI demo now defaults to **Animations ON**, with a separate toggle a
 - **Session Details starts collapsed** so the conversation workspace has maximum width. Click the top-right arrow in Connect to open it with the existing slide animation.
 - **Staggered sidebar entrance:** On the first page load, the brand, action buttons, search controls, conversation section, available agents, and Master Control identity fade/slide into place one by one over approximately 2.6 seconds. The sequence plays once per page load and does not replay when changing conversations.
 - The existing **Animations ON/OFF** control governs the sidebar entrance too; nothing about the animation or sidebar state persists across refreshes.
+
+## Conversation fade refinements
+
+- Conversation switching fades only the dynamic content: conversation title, subtitle, participant portraits, message area, and the current session's changing detail fields. The topbar container, its action buttons, and message composer remain visible and stationary.
+- The conversation area fades into place on initial page load, alongside the staggered sidebar reveal. Because demo history resets on refresh, the first newly created private conversation or agent meeting also receives a one-time entrance fade. Subsequent messages do not retrigger it.

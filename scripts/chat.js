@@ -529,6 +529,30 @@ function render() {
   renderInspector();
 }
 
+let firstChatEntranceTimer = null;
+
+function stopFirstChatEntrance() {
+  if (firstChatEntranceTimer !== null) {
+    clearTimeout(firstChatEntranceTimer);
+    firstChatEntranceTimer = null;
+  }
+  $("messages").classList.remove("chat-first-entrance");
+}
+
+function showFirstChatEntrance() {
+  stopFirstChatEntrance();
+  if (!state.motionEnabled) return;
+  const content = $("messages");
+  // Allow a first-created chat to replay this once even if the initial
+  // empty-state entrance was still active.
+  void content.offsetWidth;
+  content.classList.add("chat-first-entrance");
+  firstChatEntranceTimer = setTimeout(() => {
+    firstChatEntranceTimer = null;
+    content.classList.remove("chat-first-entrance");
+  }, 1030);
+}
+
 // A single switch controller lets rapid consecutive clicks select the latest chat.
 // Nothing is persisted; the animation only runs when selecting a different thread.
 let chatSwitchSequence = 0;
@@ -540,6 +564,9 @@ function selectChat(id) {
 
   const app = $("app");
   const main = document.querySelector(".main");
+  // Cancel first-load animation before a chat-to-chat transition. Otherwise
+  // the entrance keyframes would override #messages' switch opacity.
+  stopFirstChatEntrance();
   const seq = ++chatSwitchSequence;
 
   if (chatSwitchTimer !== null) clearTimeout(chatSwitchTimer);
@@ -596,6 +623,7 @@ function selectChat(id) {
 
 function createPrivateConversation(agent) {
   if (!AGENTS[agent]) return;
+  const isFirstConversation = state.chats.length === 0;
 
   const chat = makeChat(
     `${agent} · New conversation`,
@@ -617,11 +645,13 @@ function createPrivateConversation(agent) {
 
   const introId = chat.messages[0].id;
   renderMessages(introId);
+  if (isFirstConversation) showFirstChatEntrance();
   $("messageInput").focus();
 }
 
 function createMeeting(agents) {
   if (agents.length < 2 || agents.length > 6) return;
+  const isFirstConversation = state.chats.length === 0;
 
   const title = `Agent meeting · ${agents.join(", ")}`;
 
@@ -649,6 +679,7 @@ function createMeeting(agents) {
 
   const introId = chat.messages[chat.messages.length - 1].id;
   renderMessages(introId);
+  if (isFirstConversation) showFirstChatEntrance();
 
   $("messageInput").focus();
 }
@@ -1495,3 +1526,4 @@ syncMotionControls();
 renderAgentList();
 render();
 syncInspectorControls();
+showFirstChatEntrance();
