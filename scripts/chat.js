@@ -834,6 +834,7 @@ function beginAgentInvitations(chat, agents) {
       saveState();
 
       if (state.currentId === chatId) {
+        window.gridUiSound?.("join");
         render();
         if (destination.liveMeeting) {
           showToast(agent + " joined the call (demo).");
@@ -851,6 +852,7 @@ function beginAgentInvitations(chat, agents) {
     pendingInviteTimers.add(timer);
   }
 
+  if (state.currentId === chat.id) window.gridUiSound?.("invite");
   touchChat(chat);
   saveState();
   if (state.currentId === chat.id) render();
@@ -966,6 +968,7 @@ function sendMessage() {
     demo: false,
     attachments
   }));
+  window.gridUiSound?.("sent");
   touchChat(chat);
 
   input.value = "";
@@ -1022,6 +1025,7 @@ function sendMessage() {
     saveState();
 
     if (state.currentId === chatId) {
+      window.gridUiSound?.("received");
       renderChatList();
       renderMessages(reply.id);
     } else {
@@ -1475,6 +1479,7 @@ function showApprovalExample() {
   if (!chat) return;
 
   chat.approval = { status: "pending" };
+  window.gridUiSound?.("approval");
 
   saveState();
   renderMessages();
@@ -1493,6 +1498,7 @@ function updateApproval(status) {
   chat.approval.comment = (chat.approval.commentDraft || "").trim().slice(0, 500);
   delete chat.approval.commentDraft;
   chat.approval.status = status;
+  window.gridUiSound?.(status === "approved" ? "approved" : "rejected");
   touchChat(chat);
 
   saveState();

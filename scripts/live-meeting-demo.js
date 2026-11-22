@@ -85,6 +85,7 @@
     if (previousId !== undefined && newestId > previousId &&
         chat.liveMeeting && chat.liveChatVisible === false) {
       unreadNotifications.add(id);
+      window.gridUiSound?.("notification");
     }
     lastNoticeIdByChat.set(id, newestId);
 
@@ -304,6 +305,7 @@
     finishChatPanelAnimation();
     closeBottomContinueMenu();
     chat.liveMeeting = enabled;
+    window.gridUiSound?.(enabled ? "meeting-enter" : "meeting-exit");
     if (enabled) {
       chat.liveChatVisible = true;
       chat.liveMicPreview = false;
@@ -402,6 +404,7 @@
   chatToggle.addEventListener("click", () => {
     const chat = currentChat();
     if (!chat?.liveMeeting) return;
+    window.gridUiSound?.("panel");
     setChatVisible(chat.liveChatVisible === false);
   });
 

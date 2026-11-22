@@ -371,6 +371,7 @@ function agentUiParticipantAction(action, chosenAgent = selectedParticipant) {
   chat.departingAgents.push(agent);
   const farewell = makeMessage(agent, "See you guys later!", { demo: true });
   chat.messages.push(farewell);
+  if (state.currentId === chatId) window.gridUiSound?.("leave");
   touchChat(chat);
   saveState();
   if (state.currentId === chatId) {

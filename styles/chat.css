@@ -1355,3 +1355,31 @@ textarea:focus-visible {
 .toast .system-notification-heading { margin-bottom: 4px; }
 .toast .system-notification-content { color: var(--ivory); }
 
+/* Optional, subtle GRID.AI Connect UI sound effects (no background music). */
+.sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-height: 33px;
+  padding: 6px 10px;
+  border: 1px solid #5c4c2c;
+  border-radius: 7px;
+  color: var(--gold);
+  background: rgba(43, 35, 22, .55);
+  font: 10px/1 var(--mono);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sound-toggle:not(.enabled) {
+  border-color: #3b4550;
+  background: #1c222b;
+  color: var(--muted);
+}
+.sound-toggle:hover:not(:disabled),
+.sound-toggle:focus-visible { border-color: #b99b55; background: #332b1c; }
+.sound-toggle:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 1050px) {
+  .sound-toggle { padding: 6px 8px; font-size: 9px; }
+}
+
