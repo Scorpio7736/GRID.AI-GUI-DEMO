@@ -379,3 +379,52 @@
   background: #3a3020;
 }
 
+/* A newly invited agent enters a Live Meeting with an individual
+   fade/scale entrance, portrait halo, and transient JOINED caption.
+   Existing agents never replay this animation on normal rerenders. */
+.live-participant-tile .live-join-caption {
+  position: absolute;
+  top: 12px;
+  right: 13px;
+  padding: 5px 8px;
+  border: 1px solid rgba(115, 235, 177, .6);
+  border-radius: 99px;
+  background: rgba(22, 67, 49, .8);
+  color: #a0f0c6;
+  font: 10px var(--mono);
+  letter-spacing: .65px;
+  opacity: 0;
+  pointer-events: none;
+}
+.live-participant-tile.is-joining {
+  animation: live-agent-join-card 850ms cubic-bezier(.2, .85, .24, 1) both;
+}
+.live-participant-tile.is-joining .live-participant-face {
+  animation: live-agent-join-portrait 900ms cubic-bezier(.2, .85, .24, 1) both;
+}
+.live-participant-tile.is-joining .live-join-caption {
+  animation: live-agent-join-caption 1100ms ease-out both;
+}
+@keyframes live-agent-join-card {
+  0% { opacity: 0; transform: translateY(22px) scale(.9); filter: blur(4px); }
+  55% { opacity: 1; transform: translateY(-3px) scale(1.015); filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+@keyframes live-agent-join-portrait {
+  0% { transform: scale(.75); opacity: 0; }
+  52% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes live-agent-join-caption {
+  0% { transform: translateY(-7px); opacity: 0; }
+  25%, 70% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(3px); opacity: 0; }
+}
+.app.motion-disabled .live-participant-tile.is-joining,
+.app.motion-disabled .live-participant-tile.is-joining .live-participant-face,
+.app.motion-disabled .live-participant-tile.is-joining .live-join-caption {
+  animation: none !important;
+  transform: none !important;
+  filter: none !important;
+}
+

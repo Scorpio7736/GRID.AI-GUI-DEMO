@@ -35,6 +35,15 @@
   let speakingChatId = null;
   let speakingAgent = null;
   let speakingTimer = null;
+  const joinAnimationTimers = new Map();
+
+  function clearJoinAnimations() {
+    for (const timer of joinAnimationTimers.values()) clearTimeout(timer);
+    joinAnimationTimers.clear();
+    grid.querySelectorAll("[data-live-agent]").forEach(tile => {
+      tile.classList.remove("is-joining");
+    });
+  }
 
   // Two-phase transition: fade the current conversation out before swapping
   // layouts, then reveal the Live Meeting (or normal chat) in place.
@@ -116,6 +125,7 @@
       '<strong class="live-participant-name">' + escapeHtml(agent) + '</strong>' +
       '<span class="live-participant-role">' + escapeHtml(AGENTS[agent].role) + ' · Profile only</span>' +
       '<span class="live-speaking-label">Speaking · demo</span>' +
+      '<span class="live-join-caption" aria-hidden="true">JOINED</span>' +
       '<button type="button" class="live-preview-speak" data-live-demo-speak="' + agent +
       '" aria-label="Preview ' + agent + ' speaking highlight">Preview speaking</button>' +
       '</div>';
@@ -131,6 +141,28 @@
       '<span class="live-speaking-label" style="opacity:1;color:#8793a1">Optional · No devices accessed</span>' +
       '</div>';
   }
+
+  // Animate only invited agents that actually arrive; existing tiles should
+  // never replay their entrance when rerendering the conversation.
+  window.demoAnimateLiveJoin = (chatId, agent) => {
+    const chat = currentChat();
+    if (!chat?.liveMeeting || chat.id !== chatId || !chat.participants.includes(agent)) return;
+    const tile = [...grid.querySelectorAll("[data-live-agent]")]
+      .find(item => item.dataset.liveAgent === agent);
+    if (!tile || !state.motionEnabled) return;
+
+    const previous = joinAnimationTimers.get(agent);
+    if (previous != null) clearTimeout(previous);
+    tile.classList.remove("is-joining");
+    // Force a style boundary so a rapid re-invite could restart the animation.
+    void tile.offsetWidth;
+    tile.classList.add("is-joining");
+    const timer = setTimeout(() => {
+      tile.classList.remove("is-joining");
+      if (joinAnimationTimers.get(agent) === timer) joinAnimationTimers.delete(agent);
+    }, 1150);
+    joinAnimationTimers.set(agent, timer);
+  };
 
   function drawTiles(chat) {
     const signature = chat.id + ":" + chat.participants.join(",");
@@ -166,6 +198,7 @@
 
     if (id !== visibleChatId || !enabled) {
       clearSpeaking();
+      clearJoinAnimations();
       visibleChatId = id;
     }
 
@@ -269,6 +302,7 @@
   // If the user turns animations off during the fade, finish immediately.
   get("motionToggle")?.addEventListener("click", () => {
     if (state.motionEnabled) return;
+    clearJoinAnimations();
     finishChatPanelAnimation();
     const id = modeTransitionChatId;
     const enabled = requestedLiveMode;

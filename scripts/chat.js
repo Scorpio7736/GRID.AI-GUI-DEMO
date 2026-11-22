@@ -550,13 +550,14 @@ function renderInspector() {
 
   $("privacyInfo").textContent = !chat
     ? "Select an agent or create a meeting."
-    : chat.type === "meeting"
-      ? "This meeting has its own shared transcript. Previous private conversation history is not automatically added when a new shared meeting is created."
-      : "This conversation is scoped to its selected agent. Inviting specialists creates a fresh shared meeting without importing earlier private messages.";
+    : chat.livePrivateHistoryBoundary != null
+      ? "This conversation began privately. Earlier messages remain visible only to you in this demo. Newly invited agents join the new shared segment, without receiving earlier private history as context."
+      : chat.type === "meeting"
+        ? "This meeting has its own shared transcript. Invited agents join this same chat; earlier messages are not provided to them as context in the demo."
+        : "This is a private conversation. Inviting an agent keeps this chat and starts a new shared segment when that agent joins.";
 
   $("inviteButton").disabled = !chat ||
-    (chat.participants.length + queuedInvitations(chat).length >= 6) ||
-    (!chat.liveMeeting && !chat.participants.includes("MCP"));
+    (chat.participants.length + queuedInvitations(chat).length >= 6);
 
   $("demoApprovalButton").disabled = !chat;
 }
@@ -823,8 +824,15 @@ function beginAgentInvitations(chat, agents) {
 
       if (state.currentId === chatId) {
         render();
-        // Reuse the normal demo response animation and Live Meeting speaking glow.
+        if (destination.liveMeeting) {
+          showToast(agent + " joined the call (demo).");
+        }
+        // Reuse the normal reply animation and Live Meeting speaking glow.
         renderMessages(greeting.id);
+        if (destination.liveMeeting &&
+            typeof window.demoAnimateLiveJoin === "function") {
+          window.demoAnimateLiveJoin(chatId, agent);
+        }
       } else {
         renderChatList();
       }
@@ -835,26 +843,6 @@ function beginAgentInvitations(chat, agents) {
   touchChat(chat);
   saveState();
   if (state.currentId === chat.id) render();
-}
-
-function createSharedChatForInvitation(source, invited) {
-  // Regular chat invitations retain their fresh-shared-chat privacy boundary.
-  // Only the original participants enter immediately; new agents join later.
-  const startingAgents = [...source.participants];
-  const chat = makeChat("Agent meeting · " + startingAgents.join(", "),
-    "meeting", startingAgents);
-  chat.messages.push(makeMessage(null, "New shared meeting · Demo",
-    { kind: "divider" }));
-  chat.messages.push(makeMessage(null,
-    "Shared chat opened. Invited agents will join shortly (demo). Earlier conversation history was not imported.",
-    { kind: "notice" }));
-  state.chats.unshift(chat);
-  state.currentId = chat.id;
-  state.openMenuId = null;
-  saveState();
-  render();
-  beginAgentInvitations(chat, invited);
-  $("messageInput").focus();
 }
 
 /* SCRIPTED DEMO CHAT */
@@ -1085,9 +1073,9 @@ function openModal(type, chatId = null, preferredAgent = "MCP") {
     const joiningLive = chat.liveMeeting === true;
     title = joiningLive ? "Add agents to Live Meeting" : "Invite agents";
     description = joiningLive
-      ? "Agents join this same Live Meeting after 1.33–3 seconds. Earlier history stays visible to you, but is not supplied to new agents as context in this demo."
-      : "A new shared chat opens without copying previous history. Invited agents join after 1.33–3 seconds.";
-    button = joiningLive ? "Invite to Live Meeting" : "Create shared chat";
+      ? "Agents join this same Live Meeting after 1.33–3 seconds. Earlier private messages remain visible to you but are not supplied to new agents as context in this demo."
+      : "Agents join this same conversation after 1.33–3 seconds. If it was private, a new shared segment begins when the first guest arrives.";
+    button = joiningLive ? "Invite to Live Meeting" : "Invite to this chat";
 
     const pending = queuedInvitations(chat);
     body = ORDER.map(name => {
@@ -1228,22 +1216,17 @@ function confirmModal() {
       return;
     }
 
-    if (chat.liveMeeting === true) {
-      // Live invites preserve exactly this conversation and all prior history.
-      if (chat.type === "private" && chat.livePrivateHistoryBoundary == null) {
-        chat.livePrivateHistoryBoundary = chat.messages.length;
-      }
-      closeModal();
-      beginAgentInvitations(chat, added);
-      showToast("Invitations sent. Agents will join this Live Meeting shortly (demo).");
-      return;
+    // Both chat and Live Meeting invitations preserve the current chat ID.
+    // For a private conversation, mark where future shared messages begin;
+    // previous private messages remain visible to the operator only.
+    if (chat.type === "private" && chat.livePrivateHistoryBoundary == null) {
+      chat.livePrivateHistoryBoundary = chat.messages.length;
     }
-
-    // A normal invitation creates a fresh shared conversation without
-    // bringing older private messages into the new agent context.
     closeModal();
-    createSharedChatForInvitation(chat, added);
-    showToast("Shared chat opened. Invited agents will join shortly (demo).");
+    beginAgentInvitations(chat, added);
+    showToast(chat.liveMeeting
+      ? "Invitations sent. Agents will join this Live Meeting shortly (demo)."
+      : "Invitations sent. Agents will join this chat shortly (demo).");
     return;
   }
 
