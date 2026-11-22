@@ -321,8 +321,8 @@
   color: var(--text);
   transition: max-height .2s ease, opacity .16s ease, padding .16s ease;
 }
-.chat-entry:hover .chat-hover-details,
-.chat-entry:focus-within .chat-hover-details {
+.chat-entry.summary-open .chat-hover-details,
+.chat-entry:has(:focus-visible) .chat-hover-details {
   max-height: 400px;
   opacity: 1;
   visibility: visible;

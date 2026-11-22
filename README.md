@@ -39,7 +39,7 @@ Open `index.html` or `Chat.html` in a browser to view the demos. No build tools 
 - All displayed statuses, agent replies, and whispers are browser-local simulations; no live agent/host connection exists.
 - Agent presence is calculated from the selected chat/meeting, open whispers, and pending simulated work. It cannot report live host status.
 - Participant portraits overlap in meeting headers and sidebar conversation rows.
-- Hovering or keyboard-focusing a conversation expands its participant and metadata summary.
+- Hovering over a conversation continuously for **3 seconds** expands its participant and metadata summary; leaving early cancels the expansion. Keyboard focus opens it immediately for accessibility.
 - Newly generated agent responses start their typewriter effect after the message DOM is updated; previously saved transcript messages render immediately.
 
 ## Connect UI interactions
@@ -56,7 +56,7 @@ Open `index.html` or `Chat.html` in a browser to view the demos. No build tools 
 
 - **Resizable panels:** Drag the divider beside Conversations or Session details to adjust width. Focus a divider and use the left/right arrow keys; Shift adjusts in larger steps. The detail panel can also slide in on compact desktop widths.
 - **Conversation order:** Grab the ⠿ handle beside a conversation and drop it above or below another conversation. Keyboard users can focus the handle and press Arrow Up / Arrow Down to reorder. Sorting is manual rather than based on last activity.
-- **Hover summaries:** The conversation summary smoothly expands on hover or keyboard focus and collapses when the cursor/focus leaves.
+- **Hover summaries:** The conversation summary expands after **3 seconds of continuous hover**, then collapses when the pointer leaves. Keyboard focus expands immediately for accessibility.
 - **Agent introductions:** Ask an agent "Who are you?" or "What do you do?" for a hardcoded role-specific introduction. These are scripted demo responses, not live AI.
 - **Temporary changes:** Panel widths and conversation ordering are in memory only; a refresh resets them.
 

@@ -23,6 +23,47 @@
   let resizing = null;
   let draggedChatId = null;
 
+  // Hover details are deliberately delayed: a passing cursor must not expand
+  // conversations. CSS only opens summaries with .summary-open or keyboard focus.
+  const SUMMARY_HOVER_DELAY_MS = 3000;
+  let hoveredConversation = null;
+  let summaryHoverTimer = null;
+
+  function closeConversationSummary() {
+    if (summaryHoverTimer !== null) {
+      clearTimeout(summaryHoverTimer);
+      summaryHoverTimer = null;
+    }
+    hoveredConversation?.classList.remove("summary-open");
+    hoveredConversation = null;
+  }
+
+  list.addEventListener("pointerover", event => {
+    if (event.pointerType === "touch") return;
+    const entry = event.target.closest(".chat-entry");
+    if (!entry || entry === hoveredConversation) return;
+    closeConversationSummary();
+    hoveredConversation = entry;
+    summaryHoverTimer = setTimeout(() => {
+      summaryHoverTimer = null;
+      if (hoveredConversation === entry &&
+          entry.isConnected &&
+          entry.matches(":hover") &&
+          !app.classList.contains("dragging-chat")) {
+        entry.classList.add("summary-open");
+      }
+    }, SUMMARY_HOVER_DELAY_MS);
+  });
+
+  list.addEventListener("pointerout", event => {
+    const entry = event.target.closest(".chat-entry");
+    if (!entry || entry !== hoveredConversation) return;
+    if (event.relatedTarget && entry.contains(event.relatedTarget)) return;
+    closeConversationSummary();
+  });
+
+  list.addEventListener("dragstart", closeConversationSummary, true);
+
   function clamp(value, low, high) {
     return Math.max(low, Math.min(high, value));
   }
@@ -209,6 +250,7 @@
 
     finishChatDrag();
     if (targetId !== null && reorderConversation(sourceId, targetId, position)) {
+      closeConversationSummary();
       renderChatList();
     }
   });
@@ -231,6 +273,7 @@
     const targetId = visibleIds[nextIndex];
     const position = nextIndex < index ? "before" : "after";
     if (reorderConversation(sourceId, targetId, position)) {
+      closeConversationSummary();
       renderChatList();
       list.querySelector('[data-chat-grip="' + sourceId + '"]')
         ?.focus({ preventScroll: true });

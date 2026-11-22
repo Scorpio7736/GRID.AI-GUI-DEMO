@@ -151,8 +151,8 @@
 .chat-top { gap: 0; }
 .chat-select { padding-left: 1px; }
 
-/* Animate the contextual summary in both directions.
-   Keyboard focus exposes the same details as pointer hover. */
+/* The summary opens only after 3 seconds of continuous pointer hover.
+   Keyboard focus stays immediate for accessibility. */
 .chat-hover-details {
   max-height: 0;
   opacity: 0;
@@ -170,8 +170,8 @@
     border-color 280ms ease,
     visibility 0s linear 320ms;
 }
-.chat-entry:hover .chat-hover-details,
-.chat-entry:focus-within .chat-hover-details {
+.chat-entry.summary-open .chat-hover-details,
+.chat-entry:has(:focus-visible) .chat-hover-details {
   max-height: 480px;
   opacity: 1;
   visibility: visible;
