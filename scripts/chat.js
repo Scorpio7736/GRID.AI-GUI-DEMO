@@ -781,11 +781,18 @@ function sendMessage() {
     return;
   }
 
+  if (typeof agentUiPendingChanged === "function") {
+    agentUiPendingChanged(chatId, agent, 1);
+  }
+
   saveState();
   render();
 
   const timer = setTimeout(() => {
     pendingReplyTimers.delete(timer);
+    if (typeof agentUiPendingChanged === "function") {
+      agentUiPendingChanged(chatId, agent, -1);
+    }
 
     const destination = findChat(chatId);
     if (!destination) return;

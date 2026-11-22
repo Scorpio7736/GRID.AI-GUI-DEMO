@@ -1,6 +1,6 @@
 "use strict";
 
-// Visual extension: per-agent demo presence, portrait controls, meeting whispers.
+// Visual extension: automatically derived demo presence, portraits, meeting controls and whispers.
 // Loaded after chat.js to preserve the existing Connect conversation logic.
 const AGENT_UI_PHOTOS = {
   MCP: "./Programs/Agents/MCP/MCP_HEADSHOT.png"
@@ -13,25 +13,49 @@ const AGENT_UI_STATUSES = [
   { id: "agents", label: "Working with other Agents" },
   { id: "both", label: "Working with User and Other Agents" }
 ];
-const AGENT_UI_STATUS_KEY = "gridai-agent-demo-status-v1";
-let agentUiStatuses = {};
-try {
-  const parsed = JSON.parse(localStorage.getItem(AGENT_UI_STATUS_KEY) || "{}");
-  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-    agentUiStatuses = parsed;
-  }
-} catch (_) {
-  agentUiStatuses = {};
-}
-
-let openAgentStatusMenu = null;
+// Presence is derived from selected chats and in-flight demo work. It is not user-set.
 let selectedParticipant = null;
 let openWhisperSession = null;
 let whisperAnimation = null;
+const agentUiPending = new Map();
+
+function agentUiPendingChanged(chatId, agent, change) {
+  if (!AGENTS[agent]) return;
+  const key = chatId + ":" + agent;
+  const next = Math.max(0, (agentUiPending.get(key) || 0) + change);
+  if (next) agentUiPending.set(key, next);
+  else agentUiPending.delete(key);
+
+  renderAgentList();
+  agentUiRenderParticipants();
+  renderInspector();
+}
 
 function agentUiStatus(agent) {
-  const value = agentUiStatuses[agent];
-  return AGENT_UI_STATUSES.some(item => item.id === value) ? value : "available";
+  const chat = currentChat();
+  if (openWhisperSession?.agent === agent &&
+      openWhisperSession.chatId === chat?.id) {
+    return "user";
+  }
+  if (chat?.participants.includes(agent)) {
+    return chat.type === "meeting" ? "both" : "user";
+  }
+
+  for (const [key, count] of agentUiPending.entries()) {
+    if (count <= 0) continue;
+    const separator = key.indexOf(":");
+    const chatId = Number(key.slice(0, separator));
+    const worker = key.slice(separator + 1);
+    const workingChat = findChat(chatId);
+    if (!workingChat) continue;
+    if (workingChat.type === "meeting" &&
+        workingChat.participants.includes(agent)) {
+      return "agents";
+    }
+    if (worker === agent) return "background";
+  }
+
+  return "available";
 }
 
 function agentUiStatusLabel(agent) {
@@ -49,25 +73,9 @@ function agentUiPortrait(agent, presence = false) {
   return `<span class="agent-portrait">${face}${dot}</span>`;
 }
 
-function agentUiSetStatus(agent, status) {
-  if (!AGENTS[agent] || !AGENT_UI_STATUSES.some(s => s.id === status)) return;
-  agentUiStatuses[agent] = status;
-  openAgentStatusMenu = null;
-  try {
-    localStorage.setItem(AGENT_UI_STATUS_KEY, JSON.stringify(agentUiStatuses));
-  } catch (_) {
-    showToast("Status changed, but browser storage is unavailable.");
-  }
-  renderAgentList();
-  agentUiRenderParticipants();
-  renderInspector();
-  showToast(`${agent}: ${agentUiStatusLabel(agent)} (demo status)`);
-}
-
 renderAgentList = function renderAgentListWithPortraits() {
   $("agentList").innerHTML = ORDER.map(agent => {
     const status = agentUiStatus(agent);
-    const open = openAgentStatusMenu === agent;
     return `
       <div class="agent-row-wrap">
         <div class="agent-item">
@@ -80,26 +88,13 @@ renderAgentList = function renderAgentListWithPortraits() {
               <div class="agent-presence-label">${escapeHtml(agentUiStatusLabel(agent))}</div>
             </div>
           </button>
-          <button class="agent-status-button" data-agent-status="${agent}"
-                  aria-label="Change ${agent} status" aria-expanded="${open}"
-                  aria-haspopup="menu">
+          <button class="agent-status-button" type="button"
+                  data-agent-status-info="${agent}" aria-label="Show automatic status for ${agent}"
+                  title="${escapeHtml(agentUiStatusLabel(agent))} · Derived from demo activity">
             <span class="presence-dot presence-${status}" aria-hidden="true"></span>
-            <span aria-hidden="true">▾</span>
+            <span aria-hidden="true">ⓘ</span>
           </button>
         </div>
-        ${open ? `
-          <div class="agent-status-menu" role="menu">
-            <div class="agent-status-menu-title">MANUAL DEMO STATUS · ${agent}</div>
-            ${AGENT_UI_STATUSES.map(option => `
-              <button role="menuitemradio" data-set-agent-status="${option.id}"
-                      data-status-for="${agent}" aria-checked="${status === option.id}">
-                <span class="presence-dot presence-${option.id}" aria-hidden="true"></span>
-                ${escapeHtml(option.label)}
-                ${status === option.id ? '<span class="selected-check">✓</span>' : ""}
-              </button>
-            `).join("")}
-          </div>
-        ` : ""}
       </div>
     `;
   }).join("");
@@ -112,11 +107,12 @@ function agentUiRenderParticipants() {
   }
 
   $("headerParticipants").innerHTML = chat
-    ? chat.participants.map(agent => `
+    ? chat.participants.map((agent, index) => `
       <button class="header-participant" data-portrait-agent="${agent}"
+              style="z-index:${selectedParticipant === agent ? 20 : chat.participants.length-index}"
               title="${agent} · ${escapeHtml(agentUiStatusLabel(agent))}"
-              aria-label="${agent} options" aria-haspopup="menu"
-              aria-expanded="${selectedParticipant === agent}">
+              aria-label="Options for ${agent}: ${escapeHtml(agentUiStatusLabel(agent))}"
+              aria-haspopup="menu" aria-expanded="${selectedParticipant === agent}">
         ${agentUiPortrait(agent, true)}
       </button>
     `).join("")
@@ -159,13 +155,60 @@ function agentUiRenderParticipants() {
   `;
 }
 
+function agentUiStackedPortraits(participants, limit = 6) {
+  const members = participants.slice(0, limit);
+  return `<span class="stacked-portraits" aria-label="${escapeHtml(participants.join(", "))}">
+    ${members.map((agent, index) => `
+      <span class="stacked-portrait" style="z-index:${members.length - index}">
+        ${agentUiPortrait(agent, true)}
+      </span>
+    `).join("")}
+    ${participants.length > limit ? `<span class="stacked-overflow">+${participants.length-limit}</span>` : ""}
+  </span>`;
+}
+
 function agentUiEnhanceChatList() {
   document.querySelectorAll(".chat-entry").forEach(entry => {
     const chat = findChat(Number(entry.dataset.entryId));
-    if (!chat || chat.type === "meeting") return;
+    if (!chat) return;
+
     const icon = entry.querySelector(".chat-icon");
-    if (!icon) return;
-    icon.innerHTML = agentUiPortrait(chat.participants[0], true);
+    if (icon) {
+      icon.innerHTML = chat.type === "meeting"
+        ? agentUiStackedPortraits(chat.participants, 3)
+        : agentUiPortrait(chat.participants[0], true);
+      icon.classList.toggle("stacked-icon", chat.type === "meeting");
+    }
+
+    const count = chat.messages.filter(message => message.role).length;
+    const latest = [...chat.messages].reverse()
+      .find(message => message.role && message.text);
+    const preview = latest
+      ? latest.text.replace(/\s+/g, " ").slice(0, 120)
+      : "No messages yet";
+
+    const detail = document.createElement("div");
+    detail.className = "chat-hover-details";
+    detail.innerHTML = `
+      <div class="chat-detail-row">
+        <span class="chat-detail-label">TYPE</span>
+        <span>${chat.type === "meeting" ? "Agent meeting" : "Private chat"}</span>
+      </div>
+      <div class="chat-detail-label chat-detail-participants">PARTICIPANTS (${chat.participants.length})</div>
+      <div class="chat-member-list">
+        ${chat.participants.map(agent => `
+          <span class="chat-member-chip">
+            ${agentUiPortrait(agent, true)}
+            <span>${agent}</span>
+          </span>
+        `).join("")}
+      </div>
+      <div class="chat-detail-row"><span class="chat-detail-label">MESSAGES</span><span>${count}</span></div>
+      <div class="chat-detail-row"><span class="chat-detail-label">CREATED</span><span>${escapeHtml(formatDateTime(chat.createdAt))}</span></div>
+      <div class="chat-detail-row"><span class="chat-detail-label">LAST ACTIVITY</span><span>${escapeHtml(formatDateTime(chat.updatedAt))}</span></div>
+      <div class="chat-detail-preview">${escapeHtml(preview)}</div>
+    `;
+    entry.appendChild(detail);
   });
 }
 
@@ -224,8 +267,35 @@ renderChatList = function () {
 };
 const agentUiOldMessages = renderMessages;
 renderMessages = function (animateId = null) {
-  agentUiOldMessages(animateId);
+  // The base renderer creates the message DOM; apply portraits before typing.
+  // Passing null avoids starting an animation against a DOM we are still enhancing.
+  agentUiOldMessages(null);
   agentUiEnhanceMessages();
+
+  if (animateId === null) return;
+  const reply = currentChat()?.messages.find(item =>
+    item.id === animateId && item.role && item.role !== "You"
+  );
+  if (!reply) return;
+
+  const bubble = document.getElementById("bubble-" + animateId);
+  if (!bubble) return;
+  if (state.typewriter && !reducedMotion.matches) {
+    const indicator = document.createElement("div");
+    indicator.id = "typing-" + animateId;
+    indicator.className = "typing-label";
+    const status = document.createElement("span");
+    status.textContent = reply.role + " is responding";
+    const skip = document.createElement("button");
+    skip.className = "skip-button";
+    skip.type = "button";
+    skip.dataset.skipTypewriter = "";
+    skip.textContent = "Skip animation";
+    indicator.append(status, skip);
+    bubble.parentNode.appendChild(indicator);
+  }
+  // Starts at the final DOM node, after the avatar upgrades.
+  animateTypewriter(animateId, reply.text);
 };
 const agentUiOldInspector = renderInspector;
 renderInspector = function () {
@@ -301,6 +371,9 @@ function agentUiOpenWhisper(agent) {
   const chat = currentChat();
   if (!chat || chat.type !== "meeting" || !chat.participants.includes(agent)) return;
   openWhisperSession = { chatId: chat.id, agent };
+  renderAgentList();
+  agentUiRenderParticipants();
+  renderInspector();
   $("whisperTitle").textContent = "Whisper to " + agent;
   $("whisperAvatar").innerHTML = agentUiPortrait(agent, true);
   $("whisperBackdrop").classList.add("visible");
@@ -319,6 +392,9 @@ function agentUiFinishWhisperTyping() {
 function agentUiCloseWhisper() {
   agentUiFinishWhisperTyping();
   openWhisperSession = null;
+  renderAgentList();
+  agentUiRenderParticipants();
+  renderInspector();
   $("whisperBackdrop").classList.remove("visible");
   $("whisperInput").value = "";
 }
@@ -387,12 +463,14 @@ function agentUiSendWhisper() {
   chat.whispers ||= {};
   chat.whispers[agent] ||= [];
   chat.whispers[agent].push(makeMessage("You", text));
+  agentUiPendingChanged(chatId, agent, 1);
   touchChat(chat);
   $("whisperInput").value = "";
   saveState();
   agentUiRenderWhispers();
 
   setTimeout(() => {
+    agentUiPendingChanged(chatId, agent, -1);
     const destination = findChat(chatId);
     if (!destination || destination.type !== "meeting" ||
         !destination.participants.includes(agent)) return;
@@ -409,17 +487,10 @@ function agentUiSendWhisper() {
 }
 
 $("agentList").addEventListener("click", event => {
-  const choice = event.target.closest("[data-set-agent-status]");
-  if (choice) {
-    agentUiSetStatus(choice.dataset.statusFor, choice.dataset.setAgentStatus);
-    return;
-  }
-  const button = event.target.closest("[data-agent-status]");
-  if (button) {
-    openAgentStatusMenu = openAgentStatusMenu === button.dataset.agentStatus
-      ? null : button.dataset.agentStatus;
-    renderAgentList();
-  }
+  const button = event.target.closest("[data-agent-status-info]");
+  if (!button) return;
+  const agent = button.dataset.agentStatusInfo;
+  showToast(agent + ": " + agentUiStatusLabel(agent) + " · Based on the current demo activity; not host telemetry.");
 });
 
 $("headerParticipants").addEventListener("click", event => {
@@ -456,10 +527,6 @@ document.addEventListener("click", event => {
   if (selectedParticipant && !event.target.closest(".topbar-center")) {
     selectedParticipant = null;
     agentUiRenderParticipants();
-  }
-  if (openAgentStatusMenu && !event.target.closest(".agent-row-wrap")) {
-    openAgentStatusMenu = null;
-    renderAgentList();
   }
 });
 
