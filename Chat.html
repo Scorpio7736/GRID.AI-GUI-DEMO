@@ -131,6 +131,23 @@
           Awaiting a response · Select an agent tile to preview the speaking indicator.
         </div>
         <div class="live-meeting-toolbar" aria-label="Live meeting preview controls">
+          <div class="live-continue-control hidden" id="liveContinueControl">
+            <button class="continue-button" type="button" id="liveContinueButton"
+                    aria-haspopup="menu" aria-expanded="false"
+                    aria-controls="liveContinueMenu">Continue conversation <span aria-hidden="true">▴</span></button>
+            <div class="continue-menu hidden" id="liveContinueMenu"
+                 role="menu" aria-label="Continue conversation using">
+              <div class="continue-menu-heading">CONTINUE ON · DEMO</div>
+              <button class="continue-option" type="button" role="menuitem"
+                      data-live-continue-target="glasses">Even G2 Glasses</button>
+              <button class="continue-option" type="button" role="menuitem"
+                      data-live-continue-target="call">Phone Call</button>
+              <button class="continue-option" type="button" role="menuitem"
+                      data-live-continue-target="terminal">Terminal</button>
+              <button class="continue-option" type="button" role="menuitem"
+                      data-live-continue-target="other">Other</button>
+            </div>
+          </div>
           <button class="live-action-button" id="liveMicToggle" type="button" aria-pressed="false"
                   title="Preview microphone state; no real microphone access">
             <span aria-hidden="true">🎙</span> <span id="liveMicLabel">Mic off</span>

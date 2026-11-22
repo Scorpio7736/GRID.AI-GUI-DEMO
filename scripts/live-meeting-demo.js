@@ -20,9 +20,14 @@
   const activity = get("liveSpeakingStatus");
   const main = document.querySelector(".main");
   const workspace = get("connectWorkspace");
+  const chatSide = get("connectChatSide");
+  const bottomContinue = get("liveContinueControl");
+  const bottomContinueButton = get("liveContinueButton");
+  const bottomContinueMenu = get("liveContinueMenu");
   if (!stage || !grid || !title || !count || !toggle || !inspectorHelp ||
       !mic || !micLabel || !camera || !cameraLabel || !chatToggle ||
-      !leave || !activity || !main || !workspace) return;
+      !leave || !activity || !main || !workspace || !chatSide ||
+      !bottomContinue || !bottomContinueButton || !bottomContinueMenu) return;
 
   let stageSignature = null;
   let visibleChatId = null;
@@ -39,6 +44,25 @@
   let modeTransitionChatId = null;
   let requestedLiveMode = null;
 
+  // Live Meeting chat tray: animate the grid track and panel together.
+  const CHAT_TOGGLE_MS = 380;
+  let chatToggleTimer = null;
+  let chatToggleChatId = null;
+
+  function finishChatPanelAnimation() {
+    if (chatToggleTimer !== null) clearTimeout(chatToggleTimer);
+    chatToggleTimer = null;
+    chatToggleChatId = null;
+    main.classList.remove("live-chat-transitioning");
+  }
+
+  function closeBottomContinueMenu(restoreFocus = false) {
+    const wasOpen = !bottomContinueMenu.classList.contains("hidden");
+    bottomContinueMenu.classList.add("hidden");
+    bottomContinueButton.setAttribute("aria-expanded", "false");
+    if (wasOpen && restoreFocus) bottomContinueButton.focus();
+  }
+
   function cancelModeTransition() {
     if (modeExitTimer !== null) clearTimeout(modeExitTimer);
     if (modeEnterTimer !== null) clearTimeout(modeEnterTimer);
@@ -47,6 +71,8 @@
     modeTransitionChatId = null;
     requestedLiveMode = null;
     workspace.classList.remove("live-mode-fade-out", "live-mode-fade-in");
+    finishChatPanelAnimation();
+    closeBottomContinueMenu();
     leave.disabled = false;
   }
 
@@ -133,6 +159,9 @@
     if (modeTransitionChatId !== null && id !== modeTransitionChatId) {
       cancelModeTransition();
     }
+    if (chatToggleChatId !== null && (chatToggleChatId !== id || !enabled)) {
+      finishChatPanelAnimation();
+    }
 
     if (id !== visibleChatId || !enabled) {
       clearSpeaking();
@@ -140,9 +169,17 @@
     }
 
     if (!enabled) stageSignature = null;
+    const chatVisible = !enabled || chat.liveChatVisible !== false;
     main.classList.toggle("live-meeting-mode", enabled);
-    main.classList.toggle("live-chat-hidden", enabled && chat.liveChatVisible === false);
+    main.classList.toggle("live-chat-hidden", !chatVisible);
     stage.classList.toggle("hidden", !enabled);
+
+    // A collapsed chat must not keep keyboard focus or expose hidden controls.
+    if (!chatVisible && chatSide.contains(document.activeElement)) chatToggle.focus();
+    chatSide.inert = !chatVisible;
+    chatSide.setAttribute("aria-hidden", String(!chatVisible));
+    bottomContinue.classList.toggle("hidden", !enabled || chatVisible);
+    if (!enabled || chatVisible) closeBottomContinueMenu();
     toggle.disabled = !chat || modeExitTimer !== null;
     leave.disabled = modeExitTimer !== null;
     toggle.textContent = enabled ? "Return to chat view" : "Start live meeting";
@@ -158,6 +195,7 @@
     count.textContent = (chat.participants.length + 1) + " participants · demo";
     chatToggle.textContent = chat.liveChatVisible === false ? "Show chat" : "Hide chat";
     chatToggle.setAttribute("aria-pressed", String(chat.liveChatVisible !== false));
+    chatToggle.setAttribute("aria-expanded", String(chat.liveChatVisible !== false));
     mic.setAttribute("aria-pressed", String(!!chat.liveMicPreview));
     mic.classList.toggle("is-on", !!chat.liveMicPreview);
     micLabel.textContent = chat.liveMicPreview ? "Mic on · demo" : "Mic off";
@@ -168,6 +206,8 @@
   }
 
   function applyMeetingMode(chat, enabled) {
+    finishChatPanelAnimation();
+    closeBottomContinueMenu();
     chat.liveMeeting = enabled;
     if (enabled) {
       chat.liveChatVisible = true;
@@ -222,6 +262,7 @@
   // If the user turns animations off during the fade, finish immediately.
   get("motionToggle")?.addEventListener("click", () => {
     if (state.motionEnabled) return;
+    finishChatPanelAnimation();
     const id = modeTransitionChatId;
     const enabled = requestedLiveMode;
     const wasExiting = modeExitTimer !== null;
@@ -237,8 +278,64 @@
   chatToggle.addEventListener("click", () => {
     const chat = currentChat();
     if (!chat?.liveMeeting) return;
+
+    // State is applied immediately; the CSS grid track animates its width
+    // (or height on mobile). A rapid reverse starts from its current size.
+    finishChatPanelAnimation();
+    if (state.motionEnabled) {
+      chatToggleChatId = chat.id;
+      main.classList.add("live-chat-transitioning");
+      void workspace.offsetWidth; // Flush the starting layout for CSS transitions.
+    }
     chat.liveChatVisible = chat.liveChatVisible === false;
     syncLiveMeeting();
+
+    if (state.motionEnabled) {
+      chatToggleTimer = setTimeout(finishChatPanelAnimation, CHAT_TOGGLE_MS + 40);
+    }
+  });
+
+  bottomContinueButton.addEventListener("click", () => {
+    if (!currentChat()?.liveMeeting || currentChat().liveChatVisible !== false) return;
+    const opening = bottomContinueMenu.classList.contains("hidden");
+    if (!opening) {
+      closeBottomContinueMenu();
+      return;
+    }
+    bottomContinueMenu.classList.remove("hidden");
+    bottomContinueButton.setAttribute("aria-expanded", "true");
+    bottomContinueMenu.querySelector('[role="menuitem"]')?.focus();
+  });
+  bottomContinueMenu.addEventListener("click", event => {
+    const item = event.target.closest("[data-live-continue-target]");
+    if (!item) return;
+    const key = item.dataset.liveContinueTarget;
+    const label = CONTINUE_DESTINATIONS[key];
+    if (!label) return;
+    closeBottomContinueMenu(true);
+    showToast(label + " — handoff preview only; no connection started.");
+  });
+  bottomContinueMenu.addEventListener("keydown", event => {
+    const options = [...bottomContinueMenu.querySelectorAll('[role="menuitem"]')];
+    const index = options.indexOf(document.activeElement);
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeBottomContinueMenu(true);
+    } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      options[(index + step + options.length) % options.length]?.focus();
+    } else if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      options[event.key === "Home" ? 0 : options.length - 1]?.focus();
+    }
+  });
+  document.addEventListener("click", event => {
+    if (!event.target.closest("#liveContinueControl")) closeBottomContinueMenu();
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") closeBottomContinueMenu();
   });
   mic.addEventListener("click", () => {
     const chat = currentChat();

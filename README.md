@@ -119,3 +119,9 @@ The demonstration action-review card in a conversation includes a **Decision com
 ## Live Meeting transition animation
 
 Switching from a private chat or shared meeting into **Live Meeting** first fades and slides the entire conversation workspace out for 190 ms, changes only the view while hidden, and fades the Live Meeting layout in over 320 ms. **Return to chat** uses the same transition in reverse, without creating a new conversation or changing the transcript. The topbar and navigation remain stationary. Rapid conversation switches cancel pending mode changes; if **Animations OFF** is selected, the mode changes immediately without a fade.
+
+## Live Meeting chat-panel animation and continuation access
+
+**Hide chat / Show chat** now smoothly animates the conversation side panel, fading and sliding it while the participant grid expands or contracts over 380 ms. On narrow/mobile layouts, the chat panel collapses vertically rather than horizontally. The chat transcript remains the same and is not removed. Rapid toggles reverse the animation without waiting, and **Animations OFF** makes the change instant. When hidden, the chat panel is inaccessible to keyboard focus until shown again.
+
+**Continue conversation** remains in the chat composer at the bottom when chat is visible. When the chat panel is hidden, a **Continue conversation** dropdown appears in the Live Meeting bottom toolbar, offering the existing Even G2 Glasses, Phone Call, Terminal, and Other demo-only handoff choices. No device connects or real call starts.
