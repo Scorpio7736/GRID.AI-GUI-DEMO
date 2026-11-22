@@ -189,14 +189,24 @@
 /* The inspector becomes an off-canvas sliding pane on smaller windows. */
 @media (max-width: 1150px) {
   .app { grid-template-columns: var(--sidebar-width) minmax(0, 1fr); }
-  .inspector-resizer { display: none; }
+  .inspector-resizer {
+    display: block;
+    position: fixed;
+    right: calc(var(--inspector-width) - 6px);
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .app.show-inspector .inspector-resizer {
+    visibility: visible;
+    pointer-events: auto;
+  }
   .app .inspector {
     display: block;
     position: fixed;
     top: 0;
     right: 0;
     bottom: 0;
-    width: min(370px, 90vw);
+    width: min(var(--inspector-width), 90vw);
     min-width: 0;
     visibility: hidden;
     opacity: 0;
@@ -209,6 +219,7 @@
   }
   .app.show-inspector .inspector {
     display: block;
+    width: min(var(--inspector-width), 90vw);
     visibility: visible;
     opacity: 1;
     pointer-events: auto;
@@ -221,7 +232,7 @@
 }
 @media (max-width: 700px) {
   .app { grid-template-columns: minmax(0, 1fr); }
-  .sidebar-resizer { display: none; }
+  .sidebar-resizer, .inspector-resizer { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

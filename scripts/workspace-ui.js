@@ -32,6 +32,13 @@
       !app.classList.contains("inspector-collapsed");
   }
 
+  function isInspectorResizable() {
+    return window.innerWidth > 700 && (
+      isDesktopInspector() ||
+      (window.innerWidth <= 1150 && app.classList.contains("show-inspector"))
+    );
+  }
+
   function maxSidebarWidth() {
     const inspector = isDesktopInspector() ? inspectorWidth : 0;
     return Math.max(MIN_SIDEBAR,
@@ -39,6 +46,10 @@
   }
 
   function maxInspectorWidth() {
+    if (window.innerWidth <= 1150) {
+      return Math.max(MIN_INSPECTOR,
+        Math.min(MAX_INSPECTOR, Math.floor(window.innerWidth * 0.9)));
+    }
     return Math.max(MIN_INSPECTOR,
       Math.min(MAX_INSPECTOR, window.innerWidth - sidebarWidth - MIN_MAIN));
   }
@@ -58,7 +69,7 @@
 
   function startResize(which, event) {
     if (event.button !== 0) return;
-    if (which === "right" && !isDesktopInspector()) return;
+    if (which === "right" && !isInspectorResizable()) return;
     if (which === "left" && window.innerWidth <= 700) return;
     event.preventDefault();
     resizing = which;
@@ -99,7 +110,7 @@
 
   function resizeWithKeys(which, event) {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    if (which === "right" && !isDesktopInspector()) return;
+    if (which === "right" && !isInspectorResizable()) return;
     if (which === "left" && window.innerWidth <= 700) return;
     event.preventDefault();
 
