@@ -477,6 +477,101 @@ function agentUiSendWhisper() {
   }, 450);
 }
 
+let activeMention = null;
+let mentionIndex = 0;
+
+function agentUiDismissMention() {
+  activeMention = null;
+  mentionIndex = 0;
+  const picker = $("mentionPicker");
+  if (!picker) return;
+  picker.classList.add("hidden");
+  picker.innerHTML = "";
+}
+
+function agentUiUpdateMentions() {
+  const input = $("messageInput");
+  const chat = currentChat();
+  if (!chat || input.disabled || $("modalBackdrop").classList.contains("visible")) {
+    agentUiDismissMention();
+    return;
+  }
+  const cursor = input.selectionStart;
+  const before = input.value.slice(0, cursor);
+  const match = /(?:^|[\s(])@([a-z]{0,})$/i.exec(before);
+  if (!match) {
+    agentUiDismissMention();
+    return;
+  }
+  const partial = match[1].toUpperCase();
+  const candidates = chat.participants.filter(agent => agent.startsWith(partial));
+  if (!candidates.length) {
+    agentUiDismissMention();
+    return;
+  }
+  activeMention = {start:cursor-partial.length-1,end:cursor,candidates};
+  mentionIndex = Math.min(mentionIndex, candidates.length-1);
+  const picker = $("mentionPicker");
+  picker.classList.remove("hidden");
+  picker.innerHTML = `
+    <div class="mention-heading">TAG AN AGENT IN THIS CONVERSATION</div>
+    ${candidates.map((agent, index) => `
+      <button type="button" role="option" data-mention-agent="${agent}"
+              aria-selected="${index===mentionIndex}"
+              class="mention-option ${index===mentionIndex?"selected":""}">
+        ${agentUiPortrait(agent,true)}
+        <span><strong>@${agent}</strong><small>${escapeHtml(AGENTS[agent].role)}</small></span>
+      </button>
+    `).join("")}
+  `;
+}
+
+function agentUiInsertMention(agent) {
+  if (!activeMention || !activeMention.candidates.includes(agent)) return;
+  const input = $("messageInput");
+  const {start,end} = activeMention;
+  const replacement = "@" + agent + " ";
+  input.value = input.value.slice(0,start) + replacement + input.value.slice(end);
+  const cursor = start + replacement.length;
+  input.focus();
+  input.setSelectionRange(cursor,cursor);
+  agentUiDismissMention();
+  input.dispatchEvent(new Event("input",{bubbles:true}));
+}
+
+function agentUiHandleMentionKeydown(event) {
+  if (!activeMention) return false;
+  if (event.key === "Escape") {
+    event.preventDefault();
+    event.stopPropagation();
+    agentUiDismissMention();
+    return true;
+  }
+  if (event.key==="ArrowDown" || event.key==="ArrowUp") {
+    event.preventDefault();
+    mentionIndex = (mentionIndex + (event.key==="ArrowDown"?1:-1) +
+      activeMention.candidates.length) % activeMention.candidates.length;
+    agentUiUpdateMentions();
+    return true;
+  }
+  if ((event.key==="Enter" || event.key==="Tab") && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    agentUiInsertMention(activeMention.candidates[mentionIndex]);
+    return true;
+  }
+  return false;
+}
+
+$("mentionPicker").addEventListener("mousedown",event=>event.preventDefault());
+$("mentionPicker").addEventListener("click",event=>{
+  const item=event.target.closest("[data-mention-agent]");
+  if(item) agentUiInsertMention(item.dataset.mentionAgent);
+});
+$("messageInput").addEventListener("click",agentUiUpdateMentions);
+$("messageInput").addEventListener("keyup",event=>{
+  if(["ArrowLeft","ArrowRight","Home","End"].includes(event.key)) agentUiUpdateMentions();
+});
+
 $("headerParticipants").addEventListener("click", event => {
   const button = event.target.closest("[data-portrait-agent]");
   if (!button) return;
