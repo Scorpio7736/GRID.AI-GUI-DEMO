@@ -19,6 +19,8 @@
   const leave = get("liveLeaveButton");
   const activity = get("liveSpeakingStatus");
   const main = document.querySelector(".main");
+  const app = get("app");
+  const topbarParticipants = get("topbarCenter");
   const workspace = get("connectWorkspace");
   const chatSide = get("connectChatSide");
   const bottomContinue = get("liveContinueControl");
@@ -26,7 +28,8 @@
   const bottomContinueMenu = get("liveContinueMenu");
   if (!stage || !grid || !title || !count || !toggle || !inspectorHelp ||
       !mic || !micLabel || !camera || !cameraLabel || !chatToggle ||
-      !leave || !activity || !main || !workspace || !chatSide ||
+      !leave || !activity || !main || !app || !topbarParticipants ||
+      !workspace || !chatSide ||
       !bottomContinue || !bottomContinueButton || !bottomContinueMenu) return;
 
   let stageSignature = null;
@@ -206,6 +209,15 @@
     main.classList.toggle("live-meeting-mode", enabled);
     main.classList.toggle("live-chat-hidden", !chatVisible);
     stage.classList.toggle("hidden", !enabled);
+
+    // Hide duplicate tiny topbar portraits in Live Meeting. The same actions
+    // remain available on each square tile's ⋯ menu.
+    if (enabled && topbarParticipants.contains(document.activeElement)) {
+      get("inviteButton")?.focus();
+    }
+    app.classList.toggle("live-meeting-active", enabled);
+    topbarParticipants.inert = enabled;
+    topbarParticipants.setAttribute("aria-hidden", String(enabled));
 
     // A collapsed chat must not keep keyboard focus or expose hidden controls.
     if (!chatVisible && chatSide.contains(document.activeElement)) chatToggle.focus();

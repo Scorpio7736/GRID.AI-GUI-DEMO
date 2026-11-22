@@ -8,7 +8,7 @@
   if (!grid || !stage) return;
 
   const YOU = "__you__";
-  const GAP = 12;
+  const GAP = 4;
   const MIN_SIZE = 132;
   const MAX_SIZE = 330;
   let dragging = null;
@@ -76,7 +76,7 @@
     menu.setAttribute("aria-label", agent + " participant actions");
 
     const options = [
-      ["remove", "Remove from meeting"],
+      ["remove", "Ask to leave"],
       ["whisper", "Whisper to " + agent],
       ["move", "Move to new chat"]
     ];
@@ -184,8 +184,10 @@
   function fitSquares() {
     const chat = currentChat();
     if (!chat?.liveMeeting || stage.classList.contains("hidden")) return;
-    const width = grid.clientWidth;
-    const height = grid.clientHeight;
+    // Reserve room for padding and any vertical scrollbar so fixed square
+    // tracks remain centered and never overflow by a few pixels.
+    const width = Math.max(0, grid.clientWidth - 18);
+    const height = Math.max(0, grid.clientHeight - 10);
     if (!width || !height) return;
     const count = keysFor(chat).length;
     let columns = 1, size = 0;

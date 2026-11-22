@@ -136,7 +136,7 @@ function agentUiRenderParticipants() {
     </div>
     <button class="popup-action danger" data-portrait-action="remove"
             >
-      Remove from meeting
+      Ask to leave
     </button>
     <button class="popup-action" data-portrait-action="whisper"
             >
@@ -318,6 +318,8 @@ function agentUiRemoveFromMeeting(agent, chatId = currentChat()?.id) {
       !chat.participants.includes(agent) || chat.participants.length < 2) return false;
 
   chat.participants = chat.participants.filter(participant => participant !== agent);
+  chat.departingAgents = (chat.departingAgents || [])
+    .filter(participant => participant !== agent);
   if (chat.participants.length === 1) {
     chat.type = "private";
     if (chat.title.startsWith("Agent meeting ·")) {
@@ -328,7 +330,7 @@ function agentUiRemoveFromMeeting(agent, chatId = currentChat()?.id) {
   }
 
   chat.messages.push(makeMessage(null,
-    `${agent} removed from the meeting (demo). Historical shared messages remain in its transcript.`,
+    `${agent} left the meeting (demo). Historical shared messages remain in its transcript.`,
     { kind: "notice" }
   ));
   touchChat(chat);
@@ -354,17 +356,40 @@ function agentUiParticipantAction(action, chosenAgent = selectedParticipant) {
     return true;
   }
   if (action !== "remove" && action !== "move") return false;
-  if (chat.participants.length < 2) {
-    showToast("The last agent cannot be removed from a meeting.");
+  if (chat.departingAgents?.includes(agent)) return false;
+  if (chat.participants.length - (chat.departingAgents?.length || 0) < 2) {
+    showToast("At least one agent must remain in the conversation.");
     return false;
   }
 
   const chatId = chat.id;
   const sourceTitle = chat.title;
+
+  // The agent responds to the request before their tile exits. A farewell
+  // stays in the existing transcript, even after the participant has left.
+  chat.departingAgents ||= [];
+  chat.departingAgents.push(agent);
+  const farewell = makeMessage(agent, "See you guys later!", { demo: true });
+  chat.messages.push(farewell);
+  touchChat(chat);
+  saveState();
+  if (state.currentId === chatId) {
+    render();
+    renderMessages(farewell.id);
+    if (chat.liveMeeting && chat.liveChatVisible === false) {
+      showToast(agent + ": See you guys later!");
+    }
+  }
+
   const completeDeparture = () => {
+    const original = findChat(chatId);
+    if (original) {
+      original.departingAgents = (original.departingAgents || [])
+        .filter(participant => participant !== agent);
+    }
     if (!agentUiRemoveFromMeeting(agent, chatId)) return;
     if (action === "remove") {
-      showToast(`${agent} removed from meeting.`);
+      showToast(`${agent} left the meeting.`);
       return;
     }
 

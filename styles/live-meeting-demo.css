@@ -417,3 +417,24 @@
   filter: none !important;
 }
 
+/* Fade the redundant mini-avatars in the header when entering Live Meeting.
+   The full-size square participant tiles provide the same management menu. */
+.app .topbar-center {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+  transition: opacity 220ms ease, transform 220ms ease, visibility 0s;
+}
+.app.live-meeting-active .topbar-center {
+  opacity: 0;
+  transform: translateY(-7px) scale(.94);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 220ms ease, transform 220ms ease,
+              visibility 0s linear 220ms;
+}
+.app.motion-disabled .topbar-center {
+  transition: none !important;
+  transform: none;
+}
+
