@@ -408,14 +408,3 @@
 .app.motion-disabled #messages.chat-first-entrance {
   animation: none !important;
 }
-
-/* Wallpaper layers are set directly on #thread by applyChatWallpaper(),
-   using URLs resolved against Chat.html instead of the stylesheet directory.
-   The lighter scrim keeps the World illustrations visible behind messages. */
-.thread.has-chat-wallpaper {
-  background-color: #090d11;
-  background-attachment: local;
-}
-.thread.meeting-grid.has-chat-wallpaper {
-  background-color: #090d11;
-}

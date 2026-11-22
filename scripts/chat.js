@@ -126,27 +126,6 @@ function makeMessage(role, text, extras = {}) {
   };
 }
 
-// Three existing World artworks used as randomized chat backdrops.
-// The shuffled deck shows all three before repeating; nothing is persisted.
-const CHAT_WALLPAPERS = Object.freeze([
-  "./World/c19580d4-e3e4-4d61-a115-355b48db6b96.png",
-  "./World/f79a3fbb-dd06-4115-8d66-63ca40ee2787.png",
-  "./World/ff4551c3-faa4-4ca0-8aa2-a4564a824ef4.png"
-]);
-let chatWallpaperDeck = [];
-
-function nextChatWallpaper() {
-  if (chatWallpaperDeck.length === 0) {
-    chatWallpaperDeck = [...CHAT_WALLPAPERS];
-    for (let i = chatWallpaperDeck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [chatWallpaperDeck[i], chatWallpaperDeck[j]] =
-        [chatWallpaperDeck[j], chatWallpaperDeck[i]];
-    }
-  }
-  return chatWallpaperDeck.pop();
-}
-
 function makeChat(title, type, participants, messages = []) {
   const timestamp = nowISO();
 
@@ -156,7 +135,6 @@ function makeChat(title, type, participants, messages = []) {
     type,
     participants: [...participants],
     messages,
-    wallpaper: nextChatWallpaper(),
     approval: null,
     createdAt: timestamp,
     updatedAt: timestamp
@@ -537,67 +515,9 @@ function renderInspector() {
   $("demoApprovalButton").disabled = !chat;
 }
 
-// Apply a resolved URL directly on the chat surface. A relative url() inside
-// a CSS custom property can be interpreted relative to styles/workspace-ui.css,
-// which would incorrectly look for styles/World/ instead of World/.
-const checkedWallpaperUrls = new Set();
-
-function checkWallpaperImage(url, filename) {
-  if (checkedWallpaperUrls.has(url)) return;
-  checkedWallpaperUrls.add(url);
-  const image = new Image();
-  image.onerror = () => {
-    console.warn("[GRID.AI] Wallpaper image failed to load:", url);
-    // Only warn for the visible conversation. Missing images are not silently
-    // hidden behind the fallback solid background.
-    if (currentChat()?.wallpaper === filename) {
-      showToast("Wallpaper not found. Check the World folder beside Chat.html.");
-    }
-  };
-  image.src = url;
-}
-
-function applyChatWallpaper(chat) {
-  const thread = $("thread");
-  const isMeeting = chat?.type === "meeting";
-  const hasWallpaper = !!chat && CHAT_WALLPAPERS.includes(chat.wallpaper);
-  thread.classList.toggle("meeting-grid", isMeeting);
-  thread.classList.toggle("has-chat-wallpaper", hasWallpaper);
-
-  if (!hasWallpaper) {
-    thread.style.removeProperty("background-image");
-    thread.style.removeProperty("background-size");
-    thread.style.removeProperty("background-position");
-    thread.style.removeProperty("background-repeat");
-    thread.style.removeProperty("--chat-wallpaper");
-    return;
-  }
-
-  // document.baseURI points at Chat.html even when the page was opened via
-  // file:// on Windows. The browser receives an explicit, absolute image URL.
-  const resolvedUrl = new URL(chat.wallpaper, document.baseURI).href;
-  const safeUrl = 'url("' + resolvedUrl + '")';
-  const scrim = "linear-gradient(180deg, rgba(6, 9, 14, .18), rgba(6, 9, 14, .42))";
-  const gridX = "linear-gradient(to right, rgba(118, 151, 162, .14) 1px, transparent 1px)";
-  const gridY = "linear-gradient(to bottom, rgba(118, 151, 162, .14) 1px, transparent 1px)";
-
-  thread.style.backgroundImage = isMeeting
-    ? [gridX, gridY, scrim, safeUrl].join(", ")
-    : [scrim, safeUrl].join(", ");
-  thread.style.backgroundSize = isMeeting
-    ? "40px 40px, 40px 40px, cover, cover"
-    : "cover, cover";
-  thread.style.backgroundPosition = "center";
-  thread.style.backgroundRepeat = isMeeting
-    ? "repeat, repeat, no-repeat, no-repeat"
-    : "no-repeat, no-repeat";
-
-  checkWallpaperImage(resolvedUrl, chat.wallpaper);
-}
-
 function render() {
   const chat = currentChat();
-  applyChatWallpaper(chat);
+  $("thread").classList.toggle("meeting-grid", chat?.type === "meeting");
   if (typeof agentUiDismissMention === "function") agentUiDismissMention();
   syncInspectorControls();
 
