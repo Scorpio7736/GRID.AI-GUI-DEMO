@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080a0d">
+  <meta name="description" content="Design multi-agent workflows with MCP in the GRID.AI visual workflow studio demo.">
+  <title>GRID.AI | Agentic Workflow Designer</title>
+  <link rel="stylesheet" href="./styles/workflow-designer.css">
+</head>
+<body>
+<div class="designer-shell">
+  <aside class="studio-sidebar" aria-label="GRID.AI navigation">
+    <a class="studio-brand" href="./Chat.html" title="GRID.AI Connect">
+      <span class="brand-mark" aria-hidden="true">◈</span>
+      <span class="brand-copy"><strong>GRID<span>.AI</span></strong><small>CONTROL INTERFACE</small></span>
+    </a>
+    <div class="sidebar-content">
+      <div class="nav-label">WORKSPACE</div>
+      <a class="studio-nav-link" href="./Chat.html"><span class="nav-icon" aria-hidden="true">▤</span><span>Connect</span><span class="nav-arrow" aria-hidden="true">↗</span></a>
+      <a class="studio-nav-link active" href="./Workflow-Designer.html" aria-current="page"><span class="nav-icon" aria-hidden="true">⌘</span><span>Workflow Designer</span><span class="nav-active-dot" aria-hidden="true"></span></a>
+
+      <div class="nav-label nav-label-spaced">DESIGN ENVIRONMENT</div>
+      <div class="sidebar-info"><span class="sidebar-info-icon" aria-hidden="true">◉</span><div><strong>Local design preview</strong><small>Scripted MCP responses</small></div></div>
+      <div class="sidebar-info"><span class="sidebar-info-icon" aria-hidden="true">◇</span><div><strong>Blueprint builder</strong><small>No external actions</small></div></div>
+
+      <div class="sidebar-promo">
+        <span class="promo-kicker">GRID.AI / PREVIEW 01</span>
+        <div class="promo-symbol" aria-hidden="true">⌘</div>
+        <strong>Orchestrate better.</strong>
+        <p>Describe an idea. Structure the agents, triggers, and approval gates before anything runs.</p>
+      </div>
+    </div>
+    <div class="sidebar-operator">
+      <div class="operator-avatar">MC</div>
+      <div><strong>MASTER CONTROL</strong><small>Workflow design session</small></div>
+      <span class="operator-dot" aria-hidden="true"></span>
+    </div>
+  </aside>
+
+  <main class="studio-main">
+    <header class="studio-topbar">
+      <div class="breadcrumb"><a href="./Chat.html">GRID.AI</a><span class="breadcrumb-divider">/</span><span>WORKFLOW DESIGNER</span></div>
+      <div class="topbar-actions">
+        <span class="demo-pill"><span class="demo-pulse" aria-hidden="true"></span> UI DEMO</span>
+        <button class="toolbar-button" id="resetFlow" type="button" title="Start a new workflow">↺ <span>New draft</span></button>
+        <button class="toolbar-button primary-action" id="exportJson" type="button" title="Download the workflow as JSON">⇩ <span>Export JSON</span></button>
+      </div>
+    </header>
+
+    <section class="studio-intro" aria-labelledby="pageTitle">
+      <div class="intro-copy">
+        <div class="eyebrow"><span class="eyebrow-line"></span> THE WORKFLOW STUDIO <span class="eyebrow-tag">BETA CONCEPT</span></div>
+        <h1 id="pageTitle">From idea to <em>execution plan.</em></h1>
+        <p>Design intelligent automations alongside MCP. Describe the goal in conversation, then refine the agents and steps in your workflow blueprint.</p>
+      </div>
+      <div class="intro-stat" aria-label="Blueprint status"><span>WORKSPACE STATUS</span><strong><span class="status-dot"></span> Designing</strong><small>Nothing is connected or running</small></div>
+    </section>
+
+    <div class="studio-grid">
+      <section class="blueprint-panel" aria-label="Generated workflow blueprint">
+        <div class="panel-heading">
+          <div class="panel-heading-label"><span class="panel-kicker">01 / WORKFLOW BLUEPRINT</span><h2>Visual designer</h2></div>
+          <span class="draft-tag" id="draftTag">AWAITING INPUT</span>
+        </div>
+
+        <div class="blueprint-summary">
+          <div class="blueprint-title-row">
+            <div><div class="tiny-label">AUTOMATION / DRAFT</div><h3 id="flowTitle">Your workflow starts here</h3><p id="flowDescription">Tell MCP what you want to automate and a proposed plan will appear below.</p></div>
+            <span class="blueprint-glyph" aria-hidden="true">⌘</span>
+          </div>
+          <div class="summary-metrics" aria-live="polite">
+            <div class="metric"><span>STEPS</span><strong id="metricSteps">0</strong></div>
+            <div class="metric"><span>AGENTS</span><strong id="metricAgents">0</strong></div>
+            <div class="metric"><span>TRIGGER</span><strong id="metricTrigger">—</strong></div>
+          </div>
+        </div>
+
+        <div class="canvas-toolbar">
+          <div class="canvas-title"><span class="canvas-live-dot"></span><span>FLOW CANVAS</span><span class="canvas-hint">Select a step to edit</span></div>
+          <div class="canvas-tools"><button class="small-button" id="addStep" type="button" disabled>+ Add step</button><button class="small-button" id="previewRun" type="button" disabled>▷ Preview run</button></div>
+        </div>
+        <div class="workflow-canvas" id="workflowCanvas">
+          <div class="empty-canvas" id="emptyCanvas">
+            <div class="empty-orbit" aria-hidden="true"><div class="orbit-ring ring-1"></div><div class="orbit-ring ring-2"></div><span>⌘</span></div>
+            <span class="empty-kicker">YOUR CANVAS IS READY</span>
+            <h3>Every great system starts with a plan.</h3>
+            <p>Start a conversation with MCP or choose a quick-start idea. Your workflow will be assembled here.</p>
+            <button class="empty-action" id="focusChat" type="button">Start designing <span aria-hidden="true">↗</span></button>
+          </div>
+          <div class="flow-list" id="flowSteps" aria-label="Workflow steps" hidden></div>
+        </div>
+        <section class="step-inspector" id="stepInspector" aria-label="Selected step settings" hidden>
+          <div class="inspector-heading"><div><span class="tiny-label">STEP CONFIGURATION</span><h3 id="selectedStepHeading">Edit step</h3></div><button type="button" id="closeInspector" class="inspector-close" aria-label="Close step editor">×</button></div>
+          <div class="editor-grid">
+            <label class="editor-field">Step name <input id="editStepTitle" maxlength="80" autocomplete="off"></label>
+            <label class="editor-field">Assigned agent
+              <select id="editStepAgent"><option value="MCP">MCP · Coordinator</option><option value="MAXIS">MAXIS · Software</option><option value="TRON">TRON · Security</option><option value="JN">JN · Storage</option><option value="VOLT">VOLT · Resources</option><option value="RELAY">RELAY · Communications</option><option value="SYSTEM">SYSTEM · Trigger</option><option value="HUMAN">HUMAN · Approval</option></select>
+            </label>
+            <label class="editor-field field-wide">Step instructions <textarea id="editStepDescription" rows="2" maxlength="240"></textarea></label>
+          </div>
+          <div class="editor-actions"><div class="step-move-buttons"><button class="small-button" id="moveStepUp" type="button">↑ Move up</button><button class="small-button" id="moveStepDown" type="button">↓ Move down</button></div><button class="danger-link" id="removeStep" type="button">Remove step</button></div>
+        </section>
+        <div class="canvas-footer"><span><span class="footer-square" aria-hidden="true"></span> Blueprint only · No agents or automations are executed</span><span id="footerVersion">v0.0</span></div>
+      </section>
+
+      <aside class="mcp-panel" aria-label="Design chat with MCP">
+        <div class="mcp-header">
+          <div class="mcp-avatar" aria-hidden="true">MCP<span class="avatar-online"></span></div>
+          <div class="mcp-header-copy"><div class="mcp-heading-line"><h2>Design with MCP</h2><span class="chat-demo-tag">SIMULATED</span></div><p>Master Control Program <span aria-hidden="true">·</span> Workflow coordinator</p></div>
+          <span class="header-spark" aria-hidden="true">✦</span>
+        </div>
+        <div class="chat-intro-note"><span>✧</span> Collaboration channel <span class="chat-rule"></span> CONCEPT MODE</div>
+        <div class="mcp-messages" id="mcpMessages" role="log" aria-live="polite" aria-relevant="additions">
+          <div class="chat-date-divider"><span>NEW DESIGN SESSION</span></div>
+          <div class="chat-message assistant-message">
+            <div class="message-avatar">MCP</div>
+            <div class="message-column"><div class="message-author">MCP <span>· COORDINATOR</span></div><div class="message-bubble">Welcome to the Workflow Studio. I'm MCP, your workflow design coordinator.<p>Tell me what you want GRID.AI to automate. I'll outline a trigger, assign specialist agents, and suggest any approval gates.</p><p>What should we build?</p></div></div>
+          </div>
+        </div>
+        <div class="chat-composer">
+          <div class="prompt-starters" id="promptStarters" aria-label="Example workflow prompts">
+            <span class="starter-label">TRY AN IDEA</span>
+            <button type="button" data-prompt="Every morning at 9 AM, summarize my repository activity and email me a briefing">☀ Morning briefing</button>
+            <button type="button" data-prompt="When a pull request opens, review its code and security, then request my approval">⌘ Code review</button>
+            <button type="button" data-prompt="Organize files in a folder, identify duplicates, and ask before making changes">▤ Organize files</button>
+            <button type="button" data-prompt="Monitor system resource usage hourly and notify me if something needs attention">◉ Resource monitor</button>
+          </div>
+          <form id="mcpForm" class="composer-form">
+            <label class="sr-only" for="mcpInput">Message MCP about the workflow you want to design</label>
+            <textarea id="mcpInput" rows="2" maxlength="2000" placeholder="Describe a workflow to MCP..." aria-label="Message MCP"></textarea>
+            <div class="composer-bottom"><span>↵ Enter to send · Shift+Enter for new line</span><button type="submit" id="sendMessage" aria-label="Send message to MCP" title="Send to MCP">↗</button></div>
+          </form>
+          <p class="composer-disclaimer">MCP replies are scripted for this UI demo. No live AI, files, integrations, or scheduled tasks.</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+<div class="toast" id="studioToast" role="status" aria-live="polite"></div>
+<script src="./scripts/workflow-designer.js" defer></script>
+</body>
+</html>
