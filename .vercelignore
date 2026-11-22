@@ -1,0 +1,24 @@
+# GRID.AI GUI Demo — files excluded from Vercel deployments
+# Keep all HTML pages, styles/, scripts/, and agent headshots used by the UI.
+# These rules do NOT delete source files from GitHub.
+#
+# When a new page starts using an excluded asset, remove its exclusion first.
+
+# Project documentation and development notes (not served by the demos)
+README.md
+TODO.txt
+
+# Environment and world-building reference images (not used in the current UI)
+World/
+
+# Outfit and character-design studies (not used in the current UI)
+Programs/GRID_*
+
+# Older concept images; keep real agent headshots deployable
+Programs/Agents/MCP/MCP_CallingCard.png
+Programs/Agents/Maxis/Maxis Head.png
+
+# WAV experiments and background music.
+# The live demo currently generates its event sound effects with
+# scripts/ui-sounds.js and does not request these audio files.
+Audio/
