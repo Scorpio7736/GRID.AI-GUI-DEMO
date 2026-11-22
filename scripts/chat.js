@@ -64,6 +64,26 @@ const state={chats:[],currentId:null,nextId:1,nextMessageId:1,typewriter:true,mo
 let activeAnimation=null;
 let toastTimer=null;
 const pendingReplyTimers=new Set();
+const DEMO_THINKING_MIN_MS = 330;
+const DEMO_THINKING_MAX_MS = 1660;
+let pendingReplyNumber = 0;
+
+function demoReplyDelayMs() {
+  return DEMO_THINKING_MIN_MS +
+    Math.floor(Math.random() * (DEMO_THINKING_MAX_MS - DEMO_THINKING_MIN_MS + 1));
+}
+
+function makePendingReply(agent) {
+  return {
+    id: "pending-" + (++pendingReplyNumber),
+    agent,
+    createdAt: nowISO()
+  };
+}
+
+function demoTypingDots(agent) {
+  return `<span class="demo-thinking-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span><span class="sr-only">${escapeHtml(agent)} is typing</span>`;
+}
 function saveState(){return true;}
 
 function currentChat() {
@@ -409,6 +429,27 @@ function renderMessages(animateId = null) {
               </button>
             </div>
           ` : ""}
+        </div>
+      </article>
+    `;
+  }
+
+  // Ephemeral typing indicators never enter the saved or exported transcript.
+  // These placeholders survive switching chats while a reply is pending.
+  for (const pending of chat.pendingReplies || []) {
+    html += `
+      <article class="message demo-thinking-message" data-pending-reply="${escapeHtml(pending.id)}"
+               data-pending-agent="${escapeHtml(pending.agent)}">
+        <div class="message-avatar">${iconText(pending.agent)}</div>
+        <div class="message-body">
+          <div class="message-meta">
+            <strong>${escapeHtml(pending.agent)}</strong>
+            <span>Typing…</span>
+          </div>
+          <div class="bubble demo-thinking-bubble" role="status"
+               aria-label="${escapeHtml(pending.agent)} is typing">
+            ${demoTypingDots(pending.agent)}
+          </div>
         </div>
       </article>
     `;
@@ -805,6 +846,10 @@ function sendMessage() {
     return;
   }
 
+  const pendingReply = makePendingReply(agent);
+  chat.pendingReplies ||= [];
+  chat.pendingReplies.push(pendingReply);
+
   if (typeof agentUiPendingChanged === "function") {
     agentUiPendingChanged(chatId, agent, 1);
   }
@@ -820,6 +865,9 @@ function sendMessage() {
 
     const destination = findChat(chatId);
     if (!destination) return;
+
+    destination.pendingReplies = (destination.pendingReplies || [])
+      .filter(pending => pending.id !== pendingReply.id);
 
     const reply = makeMessage(
       agent,
@@ -838,7 +886,7 @@ function sendMessage() {
     } else {
       renderChatList();
     }
-  }, 450);
+  }, demoReplyDelayMs());
 
   pendingReplyTimers.add(timer);
 }
