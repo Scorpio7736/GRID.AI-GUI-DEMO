@@ -281,11 +281,20 @@
 
     // State is applied immediately; the CSS grid track animates its width
     // (or height on mobile). A rapid reverse starts from its current size.
-    finishChatPanelAnimation();
+    if (chatToggleTimer !== null) {
+      clearTimeout(chatToggleTimer);
+      chatToggleTimer = null;
+    }
     if (state.motionEnabled) {
+      // Keep the transition class during a quick reversal so CSS can animate
+      // from the panel's intermediate position instead of snapping to an edge.
+      if (!main.classList.contains("live-chat-transitioning")) {
+        main.classList.add("live-chat-transitioning");
+        void workspace.offsetWidth; // Commit the starting layout.
+      }
       chatToggleChatId = chat.id;
-      main.classList.add("live-chat-transitioning");
-      void workspace.offsetWidth; // Flush the starting layout for CSS transitions.
+    } else {
+      finishChatPanelAnimation();
     }
     chat.liveChatVisible = chat.liveChatVisible === false;
     syncLiveMeeting();

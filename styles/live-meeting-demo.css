@@ -35,6 +35,11 @@
 }
 .main.live-meeting-mode.live-chat-transitioning .connect-chat-side {
   transition: opacity 240ms ease, transform 380ms cubic-bezier(.22, 1, .36, 1),
+              visibility 0s;
+}
+/* Hide after the slide completes, but reveal immediately when showing again. */
+.main.live-meeting-mode.live-chat-transitioning.live-chat-hidden .connect-chat-side {
+  transition: opacity 240ms ease, transform 380ms cubic-bezier(.22, 1, .36, 1),
               visibility 0s linear 380ms;
 }
 .main.live-meeting-mode .live-meeting-stage:not(.hidden) { display: flex; }
