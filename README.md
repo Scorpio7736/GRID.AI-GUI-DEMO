@@ -101,3 +101,7 @@ The chat composer has a **Continue conversation** dropdown next to **Send**, ena
 - A persistent note beneath the composer explicitly says **Voice input and AI voice playback will not work in this demo.** The microphone button toggles only a visual voice-input preview; it does not request microphone access or perform speech recognition.
 - Every agent response includes a **speaker icon** that briefly animates a silent AI-voice playback preview. It does not play audio or synthesize speech.
 - All preview state is local to the current page. No real GRID.AI backend, speech engine, device or file integration is used.
+
+## Continuous conversation grid
+
+The same subtle 40px GRID background is now rendered on the **entire center pane** for both private chats and agent meetings. The message thread and composer footer are transparent so the grid lines run continuously behind the message area, composer, and bottom caption to the viewport edge. The top header and actual message/composer cards retain their existing opaque surfaces, and the meeting-specific controls are unchanged.
