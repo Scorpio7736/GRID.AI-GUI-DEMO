@@ -1,0 +1,5 @@
+pfps for each agent
+approvals stay in chat at bottom, fix that
+each agent chat must display what that agent does : maxis will display a code building thing, JN will register a workspace, etc
+add music to background
+Human test with david
