@@ -60,11 +60,10 @@ function nowISO() {
   return new Date().toISOString();
 }
 
-const state={chats:[],currentId:null,nextId:1,nextMessageId:1,typewriter:true,search:"",openMenuId:null,modal:null};
+const state={chats:[],currentId:null,nextId:1,nextMessageId:1,typewriter:true,motionEnabled:true,search:"",openMenuId:null,modal:null};
 let activeAnimation=null;
 let toastTimer=null;
 const pendingReplyTimers=new Set();
-const reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)");
 function saveState(){return true;}
 
 function currentChat() {
@@ -286,7 +285,7 @@ function animateTypewriter(messageId, fullText) {
   finishTypewriter();
 
   const indicator = document.getElementById("typing-" + messageId);
-  if (!state.typewriter || reducedMotion.matches) {
+  if (!state.typewriter || !state.motionEnabled) {
     bubble.textContent = fullText;
     if (indicator) indicator.remove();
     scrollToBottom();
@@ -378,7 +377,7 @@ function renderMessages(animateId = null) {
 
     const isUser = message.role === "You";
     const isAnimating = message.id === animateId &&
-      !isUser && state.typewriter && !reducedMotion.matches;
+      !isUser && state.typewriter && state.motionEnabled;
 
     html += `
       <article class="message ${isUser ? "user" : ""}">
@@ -550,7 +549,7 @@ function selectChat(id) {
 
   // The new selection can arrive while a previous fade is still running.
   // Restoring opacity first allows each transition to start from a known state.
-  if (id === state.currentId || reducedMotion.matches || !main) {
+  if (id === state.currentId || !state.motionEnabled || !main) {
     main?.classList.remove("chat-switch-out");
     app.classList.remove("chat-switch-out");
     state.currentId = id;
@@ -1320,6 +1319,35 @@ $("typewriterToggle").addEventListener("click", () => {
   );
 });
 
+
+function syncMotionControls() {
+  const enabled = state.motionEnabled;
+  const app = $("app");
+  app.classList.toggle("motion-disabled", !enabled);
+
+  const button = $("motionToggle");
+  button.textContent = enabled ? "Animations ON" : "Animations OFF";
+  button.classList.toggle("enabled", enabled);
+  button.setAttribute("aria-pressed", String(enabled));
+  button.title = enabled
+    ? "Interface animations are enabled for this demo"
+    : "Interface animations are disabled for this demo";
+}
+
+$("motionToggle").addEventListener("click", () => {
+  state.motionEnabled = !state.motionEnabled;
+  syncMotionControls();
+  if (!state.motionEnabled) {
+    finishTypewriter();
+    const whisperStop = typeof agentUiFinishWhisperTyping === "function"
+      ? agentUiFinishWhisperTyping : null;
+    whisperStop?.();
+  }
+  showToast(state.motionEnabled
+    ? "Animations enabled for this demo."
+    : "Animations disabled for this demo.");
+});
+
 $("chatSearch").addEventListener("input", event => {
   state.search = event.target.value;
   state.openMenuId = null;
@@ -1463,6 +1491,7 @@ document.addEventListener("click", event => {
 
 /* STARTUP */
 
+syncMotionControls();
 renderAgentList();
 render();
 syncInspectorControls();

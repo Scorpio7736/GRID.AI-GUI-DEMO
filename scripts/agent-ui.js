@@ -271,7 +271,7 @@ renderMessages = function (animateId = null) {
 
   const bubble = document.getElementById("bubble-" + animateId);
   if (!bubble) return;
-  if (state.typewriter && !reducedMotion.matches) {
+  if (state.typewriter && state.motionEnabled) {
     const indicator = document.createElement("div");
     indicator.id = "typing-" + animateId;
     indicator.className = "typing-label";
@@ -413,7 +413,7 @@ function agentUiRenderWhispers(animateId = null) {
   if (!msg) return;
   const bubble = document.getElementById("whisper-bubble-" + msg.id);
   if (!bubble) return;
-  if (!state.typewriter || reducedMotion.matches) {
+  if (!state.typewriter || !state.motionEnabled) {
     bubble.textContent = msg.text;
     bubble.classList.remove("typing-cursor");
     return;

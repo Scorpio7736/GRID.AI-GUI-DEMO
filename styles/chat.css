@@ -1111,9 +1111,7 @@ textarea:focus-visible {
   .composer-label { display: none; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .typing-cursor::after { animation: none; }
-}
+.app.motion-disabled .typing-cursor::after { animation: none; }
 
 .search-hint {padding:7px 7px 0;color:#84929f;font:10px var(--mono);}
 .sidebar-bottom .identity strong {font:700 11px var(--mono);letter-spacing:.35px;color:var(--gold);}

@@ -235,11 +235,13 @@
   .sidebar-resizer, .inspector-resizer { display: none; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .app, .inspector, .chat-entry, .chat-hover-details,
-  .pane-resizer::after, .brand-home-link {
-    transition-duration: 0.01ms !important;
-  }
+.app.motion-disabled,
+.app.motion-disabled .inspector,
+.app.motion-disabled .chat-entry,
+.app.motion-disabled .chat-hover-details,
+.app.motion-disabled .pane-resizer::after,
+.app.motion-disabled .brand-home-link {
+  transition-duration: 0.01ms !important;
 }
 
 /* ========================================================================
@@ -333,12 +335,10 @@
   opacity: 0;
   transform: translateY(4px);
 }
-@media (prefers-reduced-motion: reduce) {
-  .app .main,
-  .app .main.chat-switch-out,
-  .app .inspector > :not(.inspector-title),
-  .app .sidebar,
-  .app .inspector {
-    transition-duration: 0.01ms !important;
-  }
+.app.motion-disabled .main,
+.app.motion-disabled .main.chat-switch-out,
+.app.motion-disabled .inspector > :not(.inspector-title),
+.app.motion-disabled .sidebar,
+.app.motion-disabled .inspector {
+  transition-duration: 0.01ms !important;
 }

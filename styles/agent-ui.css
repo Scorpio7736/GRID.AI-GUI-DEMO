@@ -373,10 +373,8 @@
   .header-participant { flex-basis: 30px; width: 30px; height: 33px; margin-left: -10px; }
   .header-participant .agent-portrait { width: 30px; height: 30px; flex-basis: 30px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .chat-hover-details { transition: none; }
-  .stacked-portrait { transition: none; }
-}
+.app.motion-disabled .chat-hover-details { transition: none; }
+.app.motion-disabled .stacked-portrait { transition: none; }
 
 .topbar-center {z-index:45;}
 .participant-popup {z-index:100;top:calc(100% + 8px);min-width:225px;box-shadow:0 18px 45px rgba(0,0,0,.72);}
