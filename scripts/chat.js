@@ -8,7 +8,6 @@
   Browser localStorage is the only demo persistence.
 */
 
-const STORAGE_KEY = "gridai-connect-demo-v2";
 const TYPEWRITER_MS_PER_CHAR = 18;
 
 const AGENTS = {
@@ -61,86 +60,12 @@ function nowISO() {
   return new Date().toISOString();
 }
 
-function defaultState() {
-  return {
-    chats: [],
-    currentId: null,
-    nextId: 1,
-    nextMessageId: 1,
-    typewriter: true
-  };
-}
-
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState();
-
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed.chats)) return defaultState();
-
-    const chats = parsed.chats.filter(chat =>
-      chat &&
-      Number.isInteger(chat.id) &&
-      typeof chat.title === "string" &&
-      Array.isArray(chat.participants) &&
-      Array.isArray(chat.messages)
-    );
-
-    const maxId = Math.max(0, ...chats.map(c => c.id));
-    const maxMessageId = Math.max(
-      0,
-      ...chats.flatMap(c => c.messages.map(m => Number(m.id) || 0))
-    );
-
-    return {
-      chats,
-      currentId: chats.some(c => c.id === parsed.currentId)
-        ? parsed.currentId
-        : (chats[0]?.id ?? null),
-      nextId: Math.max(maxId + 1, Number(parsed.nextId) || 1),
-      nextMessageId: Math.max(maxMessageId + 1, Number(parsed.nextMessageId) || 1),
-      typewriter: parsed.typewriter !== false
-    };
-  } catch (error) {
-    console.warn("Could not load demo history:", error);
-    return defaultState();
-  }
-}
-
-const state = {
-  ...loadState(),
-  search: "",
-  openMenuId: null,
-  modal: null
-};
-
-let activeAnimation = null;
-let toastTimer = null;
-const pendingReplyTimers = new Set();
-
-const reducedMotion = window.matchMedia(
-  "(prefers-reduced-motion: reduce)"
-);
-
-function saveState() {
-  const saved = {
-    chats: state.chats,
-    currentId: state.currentId,
-    nextId: state.nextId,
-    nextMessageId: state.nextMessageId,
-    typewriter: state.typewriter
-  };
-
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-    return true;
-  } catch (error) {
-    console.warn("Demo history could not be saved:", error);
-    showToast("Browser storage unavailable. Changes may not survive reload.");
-    return false;
-  }
-}
+const state={chats:[],currentId:null,nextId:1,nextMessageId:1,typewriter:true,search:"",openMenuId:null,modal:null};
+let activeAnimation=null;
+let toastTimer=null;
+const pendingReplyTimers=new Set();
+const reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)");
+function saveState(){return true;}
 
 function currentChat() {
   return state.chats.find(c => c.id === state.currentId) || null;
@@ -222,6 +147,34 @@ function formatDateTime(iso) {
     : date.toLocaleString();
 }
 
+function chatSearchDate(q) {
+ const iso=/^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(q);
+ const us=/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(q);
+ if(!iso&&!us)return null;
+ const y=Number(iso?iso[1]:us[3]),m=Number(iso?iso[2]:us[1]),d=Number(iso?iso[3]:us[2]);
+ const dt=new Date(y,m-1,d);
+ return dt.getFullYear()===y&&dt.getMonth()===m-1&&dt.getDate()===d
+ ?[y,String(m).padStart(2,"0"),String(d).padStart(2,"0")].join("-"):null;
+}
+function localDateKey(v){
+ if(!v)return null;
+ const d=new Date(v);
+ if(Number.isNaN(d.getTime()))return null;
+ return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
+}
+function chatMatchesSearch(chat,q){
+ q=q.trim().toLowerCase();
+ if(!q)return true;
+ const date=chatSearchDate(q);
+ if(date)return [chat.createdAt,...chat.messages.map(m=>m.createdAt)].some(t=>localDateKey(t)===date);
+ const tags=[...q.matchAll(/@([a-z0-9_-]{0,})/g)].map(m=>m[1]);
+ if(tags.some(tag=>!chat.participants.some(agent=>agent.toLowerCase().includes(tag))))return false;
+ const other=q.replace(/@[a-z0-9_-]{0,}/g," ").trim();
+ if(!other)return true;
+ const hay=[chat.title,...chat.participants,...chat.messages.map(m=>m.text||"")].join(" ").toLowerCase();
+ return other.split(/\s+/).every(word=>hay.includes(word));
+}
+
 function renderChatList() {
   const query = state.search.trim().toLowerCase();
 
@@ -229,10 +182,7 @@ function renderChatList() {
     .sort((a, b) =>
       (b.updatedAt || "").localeCompare(a.updatedAt || "")
     )
-    .filter(chat =>
-      chat.title.toLowerCase().includes(query) ||
-      chat.participants.some(p => p.toLowerCase().includes(query))
-    );
+    .filter(chat => chatMatchesSearch(chat, query));
 
   $("chatCount").textContent = state.chats.length;
 
