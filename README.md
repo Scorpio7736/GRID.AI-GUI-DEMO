@@ -93,3 +93,7 @@ The Connect GUI demo now defaults to **Animations ON**, with a separate toggle a
 ## Conversation wallpapers
 
 New private conversations and meetings automatically receive a randomized wallpaper from the three existing UUID-named PNG artworks in `World/`. Each chat retains its assigned wallpaper when switching between conversations. The three images are shuffled before any repeat, and meeting backgrounds preserve the GRID pattern. A dark overlay keeps messages legible. Wallpapers are ephemeral, reset on refresh, and do not appear in the empty welcome screen.
+
+### Wallpaper asset paths
+
+The PNGs are read **directly from `World/` beside `Chat.html`**, using a browser-resolved absolute URL instead of a relative stylesheet variable. Each rendered chat surface receives its wallpaper directly, with a lighter dark scrim. If a wallpaper cannot be loaded, the demo displays a warning so missing local files can be diagnosed. Make sure all three PNG files were pulled into the local `World` folder.
