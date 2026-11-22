@@ -1286,3 +1286,54 @@ textarea:focus-visible {
   .composer-actions { gap: 6px; }
   .continue-button { font-size: 10px; padding: 8px 9px; }
 }
+
+/* Optional human review comment for demo approvals and rejections. */
+.approval-comment-field { margin: 16px 0 13px; }
+.approval-comment-field label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 7px;
+  margin-bottom: 8px;
+  color: var(--ivory);
+  font-size: 12px;
+  font-weight: 600;
+}
+.approval-comment-field label span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+.approval-comment-field textarea {
+  display: block;
+  width: 100%;
+  min-height: 76px;
+  padding: 11px 12px;
+  resize: vertical;
+  border: 1px solid #665536;
+  border-radius: 8px;
+  outline: none;
+  background: #111820;
+  color: var(--ivory);
+  font: 12px/1.5 var(--font);
+}
+.approval-comment-field textarea::placeholder { color: #86909b; }
+.approval-comment-field textarea:focus { border-color: var(--gold); }
+.approval-card .state.approval-rejected { color: var(--red); }
+.approval-decision-comment {
+  margin-top: 13px;
+  padding: 10px 12px;
+  border: 1px solid #574829;
+  border-radius: 8px;
+  background: #111820;
+}
+.approval-decision-comment strong {
+  color: var(--gold);
+  font-size: 11px;
+}
+.approval-decision-comment p {
+  margin: 7px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text);
+}

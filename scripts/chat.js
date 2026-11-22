@@ -470,6 +470,14 @@ function renderMessages(animateId = null) {
         </p>
 
         ${status === "pending" ? `
+          <div class="approval-comment-field">
+            <label for="approval-comment-${chat.id}">
+              Decision comment <span>(optional — approve or reject)</span>
+            </label>
+            <textarea id="approval-comment-${chat.id}" data-approval-comment
+                      rows="3" maxlength="500"
+                      placeholder="Add a reason, feedback, or instructions (optional)...">${escapeHtml(chat.approval.commentDraft || "")}</textarea>
+          </div>
           <div class="actions">
             <button class="primary-button" data-approval="approved">
               Approve in demo
@@ -479,11 +487,17 @@ function renderMessages(animateId = null) {
             </button>
           </div>
         ` : `
-          <div class="state">
+          <div class="state ${status === "rejected" ? "approval-rejected" : ""}">
             ${status === "approved"
               ? "Approved in prototype · Nothing executed"
               : "Rejected in prototype · Nothing executed"}
           </div>
+          ${chat.approval.comment ? `
+            <div class="approval-decision-comment">
+              <strong>${status === "approved" ? "Approval comment" : "Rejection comment"}</strong>
+              <p>${escapeHtml(chat.approval.comment)}</p>
+            </div>
+          ` : ""}
         `}
       </div>
     `;
@@ -1226,6 +1240,12 @@ function exportContext(chatId, format) {
     if (chat.approval) {
       content += `## Demonstration action review\n\n`;
       content += `Status: ${chat.approval.status}\n\n`;
+      if (chat.approval.comment) {
+        const note = chat.approval.comment;
+        const runs = note.match(/`+/g) || [];
+        const fence = "`".repeat(Math.max(2, ...runs.map(run => run.length)) + 1);
+        content += `Decision comment:\n\n${fence}text\n${note}\n${fence}\n\n`;
+      }
       content += `No host operation was executed.\n`;
     }
   } else {
@@ -1261,6 +1281,7 @@ function exportContext(chatId, format) {
 
     if (chat.approval) {
       content += `DEMO ACTION REVIEW: ${chat.approval.status}\n`;
+      if (chat.approval.comment) content += `Decision comment: ${chat.approval.comment}\n`;
       content += `No host operation was executed.\n`;
     }
   }
@@ -1339,6 +1360,11 @@ function updateApproval(status) {
   const chat = currentChat();
   if (!chat?.approval) return;
 
+  if (chat.approval.status !== "pending" ||
+      !["approved", "rejected"].includes(status)) return;
+
+  chat.approval.comment = (chat.approval.commentDraft || "").trim().slice(0, 500);
+  delete chat.approval.commentDraft;
   chat.approval.status = status;
   touchChat(chat);
 
@@ -1542,6 +1568,16 @@ $("agentList").addEventListener("click", event => {
   if (!item) return;
 
   openModal("new", null, item.dataset.quickAgent);
+});
+
+// Preserve the optional comment even when the transcript rerenders while
+// a scripted response is arriving or the user switches conversations.
+$("messages").addEventListener("input", event => {
+  if (!event.target.matches("[data-approval-comment]")) return;
+  const chat = currentChat();
+  if (chat?.approval?.status === "pending") {
+    chat.approval.commentDraft = event.target.value.slice(0, 500);
+  }
 });
 
 $("messages").addEventListener("click", event => {
