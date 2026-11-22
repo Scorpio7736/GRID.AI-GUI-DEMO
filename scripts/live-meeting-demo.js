@@ -193,10 +193,12 @@
     if (!enabled) return;
 
     title.textContent = chat.title;
-    count.textContent = (chat.participants.length + 1) + " participants · demo";
-    addAgent.disabled = chat.participants.length >= 6 || modeExitTimer !== null;
+    const joining = queuedInvitations(chat).length;
+    count.textContent = (chat.participants.length + 1) + " participants" +
+      (joining ? " · " + joining + " joining…" : "") + " · demo";
+    addAgent.disabled = chat.participants.length + joining >= 6 || modeExitTimer !== null;
     addAgent.title = addAgent.disabled
-      ? "This meeting already has the maximum of six agents"
+      ? "This meeting has reached its six-agent limit, including those joining"
       : "Invite an agent into this same Live Meeting";
     chatToggle.textContent = chat.liveChatVisible === false ? "Show chat" : "Hide chat";
     chatToggle.setAttribute("aria-pressed", String(chat.liveChatVisible !== false));
@@ -282,7 +284,8 @@
   leave.addEventListener("click", () => changeMeetingMode(false));
   addAgent.addEventListener("click", () => {
     const chat = currentChat();
-    if (!chat?.liveMeeting || chat.participants.length >= 6) return;
+    if (!chat?.liveMeeting ||
+        chat.participants.length + queuedInvitations(chat).length >= 6) return;
     openModal("invite", chat.id);
   });
   chatToggle.addEventListener("click", () => {

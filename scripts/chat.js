@@ -64,6 +64,17 @@ const state={chats:[],currentId:null,nextId:1,nextMessageId:1,typewriter:true,mo
 let activeAnimation=null;
 let toastTimer=null;
 const pendingReplyTimers=new Set();
+const pendingInviteTimers = new Set();
+const INVITE_DELAY_MIN_MS = 1330;
+const INVITE_DELAY_MAX_MS = 3000;
+const AGENT_JOIN_GREETINGS = Object.freeze({
+  MCP: "Hey everyone! MCP here. Ready to coordinate.",
+  MAXIS: "Hey guys! MAXIS checking in. What are we working on?",
+  TRON: "Hello team! TRON here. Ready to help with security.",
+  JN: "Hey everyone! JN is here. Need a hand with files?",
+  VOLT: "Hey team! VOLT here. How can I help with performance?",
+  RELAY: "Hi everyone! RELAY just joined. What's the update?"
+});
 const DEMO_THINKING_MIN_MS = 330;
 const DEMO_THINKING_MAX_MS = 1660;
 let pendingReplyNumber = 0;
@@ -544,7 +555,7 @@ function renderInspector() {
       : "This conversation is scoped to its selected agent. Inviting specialists creates a fresh shared meeting without importing earlier private messages.";
 
   $("inviteButton").disabled = !chat ||
-    (chat.type === "meeting" && chat.participants.length >= 6) ||
+    (chat.participants.length + queuedInvitations(chat).length >= 6) ||
     (!chat.liveMeeting && !chat.participants.includes("MCP"));
 
   $("demoApprovalButton").disabled = !chat;
@@ -741,6 +752,99 @@ function createMeeting(agents) {
   renderMessages(introId);
   if (isFirstConversation) showFirstChatEntrance();
 
+  $("messageInput").focus();
+}
+
+
+/* Invitees become participants only after a randomized delay.
+   Timers belong to their originating chat ID, not the currently opened tab. */
+function inviteArrivalDelayMs() {
+  return INVITE_DELAY_MIN_MS +
+    Math.floor(Math.random() * (INVITE_DELAY_MAX_MS - INVITE_DELAY_MIN_MS + 1));
+}
+
+function queuedInvitations(chat) {
+  return (chat?.pendingInvitations || []).filter(agent =>
+    AGENTS[agent] && !chat.participants.includes(agent)
+  );
+}
+
+function beginAgentInvitations(chat, agents) {
+  if (!chat || !findChat(chat.id)) return;
+  chat.pendingInvitations ||= [];
+  const invited = agents.filter(agent =>
+    AGENTS[agent] &&
+    !chat.participants.includes(agent) &&
+    !chat.pendingInvitations.includes(agent)
+  );
+  if (!invited.length ||
+      chat.participants.length + chat.pendingInvitations.length + invited.length > 6) return;
+
+  for (const agent of invited) {
+    chat.pendingInvitations.push(agent);
+    const chatId = chat.id;
+    const timer = setTimeout(() => {
+      pendingInviteTimers.delete(timer);
+      const destination = findChat(chatId);
+      if (!destination) return; // Ignore arrivals for deleted conversations.
+
+      destination.pendingInvitations = (destination.pendingInvitations || [])
+        .filter(name => name !== agent);
+      if (destination.participants.includes(agent) ||
+          destination.participants.length >= 6) return;
+
+      const wasPrivate = destination.type === "private";
+      if (wasPrivate) destination.livePrivateHistoryBoundary ??= destination.messages.length;
+      destination.participants = ORDER.filter(name =>
+        destination.participants.includes(name) || name === agent
+      );
+      destination.type = "meeting";
+      if (wasPrivate || destination.title.startsWith("Agent meeting ·")) {
+        destination.title = "Agent meeting · " + destination.participants.join(", ");
+      }
+
+      const location = destination.liveMeeting ? "call" : "chat";
+      destination.messages.push(makeMessage(null,
+        agent + " joined the " + location, { kind: "notice" }
+      ));
+      const greeting = makeMessage(agent, AGENT_JOIN_GREETINGS[agent], { demo: true });
+      destination.messages.push(greeting);
+      touchChat(destination);
+      saveState();
+
+      if (state.currentId === chatId) {
+        render();
+        // Reuse the normal demo response animation and Live Meeting speaking glow.
+        renderMessages(greeting.id);
+      } else {
+        renderChatList();
+      }
+    }, inviteArrivalDelayMs());
+    pendingInviteTimers.add(timer);
+  }
+
+  touchChat(chat);
+  saveState();
+  if (state.currentId === chat.id) render();
+}
+
+function createSharedChatForInvitation(source, invited) {
+  // Regular chat invitations retain their fresh-shared-chat privacy boundary.
+  // Only the original participants enter immediately; new agents join later.
+  const startingAgents = [...source.participants];
+  const chat = makeChat("Agent meeting · " + startingAgents.join(", "),
+    "meeting", startingAgents);
+  chat.messages.push(makeMessage(null, "New shared meeting · Demo",
+    { kind: "divider" }));
+  chat.messages.push(makeMessage(null,
+    "Shared chat opened. Invited agents will join shortly (demo). Earlier conversation history was not imported.",
+    { kind: "notice" }));
+  state.chats.unshift(chat);
+  state.currentId = chat.id;
+  state.openMenuId = null;
+  saveState();
+  render();
+  beginAgentInvitations(chat, invited);
   $("messageInput").focus();
 }
 
@@ -972,21 +1076,23 @@ function openModal(type, chatId = null, preferredAgent = "MCP") {
     const joiningLive = chat.liveMeeting === true;
     title = joiningLive ? "Add agents to Live Meeting" : "Invite agents";
     description = joiningLive
-      ? "Selected agents join this same meeting. The existing transcript stays here for you. Earlier conversation messages are not provided to newly joined agents as context in this demo."
-      : "Choose additional participants. A new shared conversation will be created without copying private history.";
-    button = joiningLive ? "Add to Live Meeting" : "Create shared meeting";
+      ? "Agents join this same Live Meeting after 1.33–3 seconds. Earlier history stays visible to you, but is not supplied to new agents as context in this demo."
+      : "A new shared chat opens without copying previous history. Invited agents join after 1.33–3 seconds.";
+    button = joiningLive ? "Invite to Live Meeting" : "Create shared chat";
 
+    const pending = queuedInvitations(chat);
     body = ORDER.map(name => {
       const alreadyIncluded = chat.participants.includes(name);
+      const joining = pending.includes(name);
       return `
         <label class="modal-agent">
           <input type="checkbox" name="inviteAgent" value="${name}"
-                 ${alreadyIncluded ? "checked disabled" : ""}>
+                 ${alreadyIncluded ? "checked disabled" : joining ? "disabled" : ""}>
           <div class="agent-icon">${iconText(name)}</div>
           <div>
             <strong>${name}</strong>
             <small>${escapeHtml(AGENTS[name].role)}${
-              alreadyIncluded ? " · Existing participant" : ""
+              alreadyIncluded ? " · Existing participant" : joining ? " · Joining shortly…" : ""
             }</small>
           </div>
         </label>
@@ -1094,72 +1200,41 @@ function confirmModal() {
   if (type === "invite") {
     if (!chat) return;
 
-    // Already-present agents are checked and disabled in the modal. Only
-    // newly selected, enabled entries count toward this invitation.
+    const pending = queuedInvitations(chat);
     const added = [...document.querySelectorAll(
       'input[name="inviteAgent"]:checked:not(:disabled)'
     )].map(input => input.value).filter(name =>
-      AGENTS[name] && !chat.participants.includes(name)
+      AGENTS[name] && !chat.participants.includes(name) &&
+      !pending.includes(name)
     );
 
     if (!added.length) {
-      modalError("Select at least one new participant.");
+      modalError("Select at least one agent who is not already joining.");
       return;
     }
 
-    const combined = ORDER.filter(name =>
-      chat.participants.includes(name) || added.includes(name)
-    );
-
-    if (combined.length < 2 || combined.length > 6) {
-      modalError("A meeting must have between 2 and 6 agents.");
+    const total = new Set([...chat.participants, ...pending, ...added]).size;
+    if (total < 2 || total > 6) {
+      modalError("A meeting supports at most six agents, including those joining.");
       return;
     }
 
     if (chat.liveMeeting === true) {
-      // A live invitation modifies this exact conversation: no second chat,
-      // lost transcript, or new session identity. Prior one-to-one or shared
-      // messages stay visible to the operator, but do not become context
-      // provided to the newly joining demo agents.
-      const originallyPrivate = chat.type === "private";
-      const previousParticipants = [...chat.participants];
-      if (originallyPrivate) {
+      // Live invites preserve exactly this conversation and all prior history.
+      if (chat.type === "private" && chat.livePrivateHistoryBoundary == null) {
         chat.livePrivateHistoryBoundary = chat.messages.length;
       }
-      chat.participants = combined;
-      chat.type = "meeting";
-      if (originallyPrivate || chat.title.startsWith("Agent meeting ·")) {
-        chat.title = `Agent meeting · ${combined.join(", ")}`;
-      }
-      chat.messages.push(makeMessage(null,
-        `Live Meeting · ${added.join(", ")} joined · New shared segment (demo)`,
-        { kind: "divider" }
-      ));
-      chat.messages.push(makeMessage(null,
-        originallyPrivate
-          ? "Earlier private messages remain in your local transcript, but are not supplied to newly joined demo agents as conversation context."
-          : "Earlier shared messages remain in your transcript; newly joined demo agents start with the new shared segment.",
-        { kind: "notice" }
-      ));
-      for (const agent of added) {
-        chat.messages.push(makeMessage(agent,
-          `I've joined this Live Meeting. You can message me using @${agent}. This is a visual demo; no actual agent call was connected.`,
-          { demo: true }
-        ));
-      }
-      touchChat(chat);
       closeModal();
-      saveState();
-      render();
-      // Highlight the last joining agent on the existing Live Meeting stage.
-      renderMessages(chat.messages[chat.messages.length - 1].id);
-      showToast(`${added.join(", ")} joined this Live Meeting (demo).`);
+      beginAgentInvitations(chat, added);
+      showToast("Invitations sent. Agents will join this Live Meeting shortly (demo).");
       return;
     }
 
+    // A normal invitation creates a fresh shared conversation without
+    // bringing older private messages into the new agent context.
     closeModal();
-    createMeeting(combined);
-    showToast("New shared meeting created. Private history was not imported.");
+    createSharedChatForInvitation(chat, added);
+    showToast("Shared chat opened. Invited agents will join shortly (demo).");
     return;
   }
 
