@@ -290,7 +290,7 @@
     const headings = [...sidebar.querySelectorAll(".sidebar-scroll > .section-heading")];
     const agentRows = [...sidebar.querySelectorAll("#agentList > .agent-row-wrap")];
     const targets = [
-      sidebar.querySelector(".brand-home-link"),
+      sidebar.querySelector(".brand"),
       sidebar.querySelector("#newChatButton"),
       sidebar.querySelector("#meetingButton"),
       sidebar.querySelector("#chatSearch"),
