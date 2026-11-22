@@ -81,3 +81,11 @@ The Connect GUI demo now defaults to **Animations ON**, with a separate toggle a
 
 - Conversation switching animates the complete top-left heading (title, status dot, subtitle, separator, and UI DEMO) together: it fades/slides left, then the new heading fades/slides in from the left. The topbar container, its buttons, and the composer remain stationary; participant portraits and messages keep their own localized fades.
 - The conversation area fades into place on initial page load, alongside the staggered sidebar reveal. Because demo history resets on refresh, the first newly created private conversation or agent meeting also receives a one-time entrance fade. Subsequent messages do not retrigger it.
+
+## Simulated response bubbles
+
+- When a user sends a message, the addressed agent immediately displays a transient **three-dot typing bubble** for a random **0.33–1.66 seconds** (330–1660 ms), then posts the scripted reply.
+- The animated dots also appear in private whispers during that wait.
+- Agent portraits and names remain visible, and the existing reply typewriter starts after the bubble disappears.
+- Pending indicators exist only in page memory, never enter the transcript, and are excluded from TXT/Markdown exports. They are recreated when returning to a conversation with an outstanding response.
+- The **Animations ON/OFF** control can stop the dot bounce without removing the simulated wait.

@@ -219,6 +219,13 @@ function agentUiEnhanceMessages() {
     const avatar = row.querySelector(".message-avatar");
     if (avatar) avatar.innerHTML = agentUiPortrait(message.role, false);
   });
+
+  $("messages").querySelectorAll(".demo-thinking-message").forEach(row => {
+    const agent = row.dataset.pendingAgent;
+    if (!AGENTS[agent]) return;
+    const avatar = row.querySelector(".message-avatar");
+    if (avatar) avatar.innerHTML = agentUiPortrait(agent, false);
+  });
 }
 
 function agentUiEnhanceInspector() {
@@ -396,12 +403,21 @@ function agentUiRenderWhispers(animateId = null) {
   const { chatId, agent } = openWhisperSession;
   const chat = findChat(chatId);
   const messages = chat?.whispers?.[agent] || [];
-  $("whisperMessages").innerHTML = messages.length
+  const pending = chat?.pendingWhispers?.[agent] || [];
+  $("whisperMessages").innerHTML = (messages.length || pending.length)
     ? messages.map(message => `
         <div class="whisper-line ${message.role === "You" ? "mine" : ""}">
           <strong>${escapeHtml(message.role)} · ${escapeHtml(formatTime(message.createdAt))}</strong>
           <div class="whisper-bubble ${message.id === animateId ? "typing-cursor" : ""}"
                id="whisper-bubble-${message.id}">${message.id === animateId ? "" : escapeHtml(message.text)}</div>
+        </div>
+      `).join("") + pending.map(entry => `
+        <div class="whisper-line demo-thinking-whisper" data-pending-whisper="${escapeHtml(entry.id)}">
+          <strong>${escapeHtml(agent)} · Typing…</strong>
+          <div class="whisper-bubble demo-thinking-bubble" role="status"
+               aria-label="${escapeHtml(agent)} is typing">
+            ${demoTypingDots(agent)}
+          </div>
         </div>
       `).join("")
     : '<div class="whisper-empty">No whispers yet. Start a private side conversation with this agent.</div>';
@@ -454,6 +470,10 @@ function agentUiSendWhisper() {
   chat.whispers ||= {};
   chat.whispers[agent] ||= [];
   chat.whispers[agent].push(makeMessage("You", text));
+  const pendingReply = makePendingReply(agent);
+  chat.pendingWhispers ||= {};
+  chat.pendingWhispers[agent] ||= [];
+  chat.pendingWhispers[agent].push(pendingReply);
   agentUiPendingChanged(chatId, agent, 1);
   touchChat(chat);
   $("whisperInput").value = "";
@@ -463,8 +483,19 @@ function agentUiSendWhisper() {
   setTimeout(() => {
     agentUiPendingChanged(chatId, agent, -1);
     const destination = findChat(chatId);
-    if (!destination || destination.type !== "meeting" ||
-        !destination.participants.includes(agent)) return;
+    if (!destination) return;
+
+    if (destination.pendingWhispers?.[agent]) {
+      destination.pendingWhispers[agent] = destination.pendingWhispers[agent]
+        .filter(pending => pending.id !== pendingReply.id);
+    }
+
+    if (destination.type !== "meeting" || !destination.participants.includes(agent)) {
+      if (openWhisperSession?.chatId === chatId && openWhisperSession?.agent === agent) {
+        agentUiRenderWhispers();
+      }
+      return;
+    }
     destination.whispers ||= {};
     destination.whispers[agent] ||= [];
     const reply = makeMessage(agent, demonstrationReply(agent, text), { demo: true });
@@ -474,7 +505,7 @@ function agentUiSendWhisper() {
     if (openWhisperSession?.chatId === chatId && openWhisperSession?.agent === agent) {
       agentUiRenderWhispers(reply.id);
     }
-  }, 450);
+  }, demoReplyDelayMs());
 }
 
 let activeMention = null;
