@@ -15,9 +15,13 @@ Chat.html
 styles/
   index.css
   chat.css
+  agent-ui.css
+  workspace-ui.css
 scripts/
   index.js
   chat.js
+  agent-ui.js
+  workspace-ui.js
 Programs/    # character and program concept art
 World/       # world/environment reference art
 ```
@@ -45,5 +49,13 @@ Open `index.html` or `Chat.html` in a browser to view the demos. No build tools 
 - **Meeting view:** Subtle grid background, stacked avatars and working participant actions.
 - **Agent mentions:** Type `@` in the composer to choose from the agents in the current chat; use arrow keys/Enter or click.
 - **Typewriter:** Animated scripted agent responses are on by default, including a skip control.
-- **Navigation:** Top-right GRID.AI link returns to `index.html`; arrow controls collapse/expand session details.
+- **Navigation:** Click the GRID.AI brand in the upper-left sidebar to return to `index.html`; arrow controls slide session details open/closed.
 - **Identity:** The lower-left sidebar identifies the operator as **YOU ARE MASTER CONTROL**.
+
+## Workspace refinements
+
+- **Resizable panels:** Drag the divider beside Conversations or Session details to adjust width. Focus a divider and use the left/right arrow keys; Shift adjusts in larger steps. The detail panel can also slide in on compact desktop widths.
+- **Conversation order:** Grab the ⠿ handle beside a conversation and drop it above or below another conversation. Keyboard users can focus the handle and press Arrow Up / Arrow Down to reorder. Sorting is manual rather than based on last activity.
+- **Hover summaries:** The conversation summary smoothly expands on hover or keyboard focus and collapses when the cursor/focus leaves.
+- **Agent introductions:** Ask an agent "Who are you?" or "What do you do?" for a hardcoded role-specific introduction. These are scripted demo responses, not live AI.
+- **Temporary changes:** Panel widths and conversation ordering are in memory only; a refresh resets them.
