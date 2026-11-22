@@ -178,11 +178,8 @@ function chatMatchesSearch(chat,q){
 function renderChatList() {
   const query = state.search.trim().toLowerCase();
 
-  const chats = [...state.chats]
-    .sort((a, b) =>
-      (b.updatedAt || "").localeCompare(a.updatedAt || "")
-    )
-    .filter(chat => chatMatchesSearch(chat, query));
+  // Keep user-chosen ordering instead of sorting chats by last activity.
+  const chats = state.chats.filter(chat => chatMatchesSearch(chat, query));
 
   $("chatCount").textContent = state.chats.length;
 
@@ -204,6 +201,9 @@ function renderChatList() {
            data-entry-id="${chat.id}">
 
         <div class="chat-top">
+          <button class="chat-drag-handle" type="button" draggable="true"
+                  data-chat-grip="${chat.id}" aria-label="Drag or use arrow keys to reorder ${escapeHtml(chat.title)}"
+                  title="Drag to reorder · Arrow keys also work">⠿</button>
           <button class="chat-select" data-select-chat="${chat.id}"
                   title="${escapeHtml(chat.title)}">
             <div class="chat-icon ${isMeeting ? "meeting" : ""}">
@@ -645,8 +645,22 @@ function chooseAgent(message, chat) {
     : chat.participants[0];
 }
 
+const AGENT_DEMO_BIOS = {
+  MCP: "I'm MCP (Master Control Program), the GRID.AI coordinator. I receive your requests, select the appropriate specialist agents, organize shared meetings, and coordinate proposals and approval workflows. I keep responsibilities and conversation context scoped so work is reviewed before any host operation.",
+  MAXIS: "I'm MAXIS, GRID.AI's software development specialist. My role is to inspect authorized codebases, analyze errors, plan changes, write and review code, and help validate tests and builds. I work with reviewed execution boundaries rather than making unchecked host changes.",
+  TRON: "I'm TRON, GRID.AI's read-only security analyst. I review security signals, system protection status, permission boundaries, and potential risks. My role is to report findings and recommendations, not silently modify security settings.",
+  JN: "I'm JN, GRID.AI's storage and archival specialist. I help organize files, inspect storage structures, identify possible duplicates, and prepare safe file-management or archival plans. Operations that change files require explicit authorization.",
+  VOLT: "I'm VOLT, GRID.AI's resource and simulation specialist. I monitor and reason about processor, memory and other resource constraints, performance, capacity, and simulation pacing so GRID can stay responsive.",
+  RELAY: "I'm RELAY, GRID.AI's communications specialist. I help prepare notification and communication workflows, concise task briefings, and event updates. I keep communication actions within the approved permissions and destination scope."
+};
+
 function demonstrationReply(agent, message) {
   const text = message.toLowerCase();
+  const question = text.replace(/@[a-z0-9_-]+\b/g, "").trim();
+
+  if (/\b(who are you|what do you do|what are you|what is your (?:role|job|purpose)|what can you do|introduce yourself|tell me about yourself|describe yourself|your responsibilities|your purpose|your role)\b/.test(question)) {
+    return AGENT_DEMO_BIOS[agent] + "\n\nThis is a scripted introduction for the GUI demo; I'm not connected to the live GRID.AI agent runtime.";
+  }
 
   if (/\b(hello|hi|hey)\b/.test(text)) {
     return `Hello. I'm ${agent}, Grid.AI's ${AGENTS[agent].role.toLowerCase()} specialist.\n\nThis is a scripted response demonstrating the conversation interface.`;
@@ -983,10 +997,7 @@ function confirmModal() {
     state.chats = state.chats.filter(c => c.id !== deletedId);
 
     if (state.currentId === deletedId) {
-      const next = [...state.chats]
-        .sort((a, b) =>
-          (b.updatedAt || "").localeCompare(a.updatedAt || "")
-        )[0];
+      const next = state.chats[0];
 
       state.currentId = next?.id ?? null;
     }
