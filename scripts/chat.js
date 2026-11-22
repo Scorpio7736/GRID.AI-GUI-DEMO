@@ -356,27 +356,8 @@ function renderMessages(animateId = null) {
     return;
   }
 
-  const symbol = chat.type === "meeting"
-    ? "◈"
-    : iconText(chat.participants[0]);
-
-  const subtitle = chat.type === "meeting"
-    ? "Shared agent meeting"
-    : "Private agent conversation";
-
-  let html = `
-    <div class="conversation-intro">
-      <div class="intro-symbol">${symbol}</div>
-      <h2>${escapeHtml(chat.title)}</h2>
-      <p>
-        ${subtitle}. This standalone demo uses browser-local
-        messages and scripted agent responses.
-      </p>
-    </div>
-    <div class="session-divider">
-      <span>Conversation preview</span>
-    </div>
-  `;
+  // Start directly with the transcript: the topbar already identifies the chat.
+  let html = "";
 
   for (const message of chat.messages) {
     if (message.kind === "divider") {

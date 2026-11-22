@@ -210,11 +210,6 @@ function agentUiEnhanceMessages() {
   const chat = currentChat();
   if (!chat) return;
 
-  if (chat.type === "private") {
-    const intro = $("messages").querySelector(".conversation-intro .intro-symbol");
-    if (intro) intro.innerHTML = agentUiPortrait(chat.participants[0], true);
-  }
-
   const messageRows = chat.messages.filter(m => m.role && !m.kind);
   $("messages").querySelectorAll(".message").forEach((row, index) => {
     const message = messageRows[index];
