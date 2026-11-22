@@ -6,6 +6,7 @@
 <title>Grid.AI | Connect</title>
 
 <link rel="stylesheet" href="./styles/chat.css">
+<link rel="stylesheet" href="./styles/agent-ui.css">
 </head>
 
 <body>
@@ -87,6 +88,11 @@
         </div>
       </div>
 
+      <div class="topbar-center" id="topbarCenter" aria-label="Conversation participants">
+        <div class="header-participants" id="headerParticipants"></div>
+        <div class="participant-popup hidden" id="participantPopup"></div>
+      </div>
+
       <div class="topbar-actions">
         <button class="text-button invite-button" id="inviteButton">
           + Invite agent
@@ -162,7 +168,7 @@
       <span class="value" id="infoType">None</span>
     </div>
 
-    <div class="inspector-heading">Participants</div>
+    <div class="inspector-heading">Participants · Demo status</div>
     <div id="participantList"></div>
 
     <div class="inspector-heading">Conversation privacy</div>
@@ -212,8 +218,35 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="whisperBackdrop">
+  <div class="modal whisper-modal" role="dialog" aria-modal="true" aria-labelledby="whisperTitle">
+    <div class="whisper-heading">
+      <div class="whisper-heading-person">
+        <span id="whisperAvatar"></span>
+        <div>
+          <h2 id="whisperTitle">Private whisper</h2>
+          <span class="whisper-subtitle">Private side thread · Demo only</span>
+        </div>
+      </div>
+      <button class="icon-button" id="closeWhisper" aria-label="Close whisper">×</button>
+    </div>
+    <p class="whisper-explanation">
+      This private demo thread is separate from the meeting. Whisper messages
+      are excluded from shared meeting transcripts and TXT/MD context exports.
+      No real agent receives these messages.
+    </p>
+    <div class="whisper-thread" id="whisperMessages" aria-label="Whisper messages"></div>
+    <div class="whisper-composer">
+      <textarea id="whisperInput" rows="2" maxlength="5000"
+        placeholder="Send a private whisper..." aria-label="Private whisper"></textarea>
+      <button class="send-button" id="sendWhisper">Send ↗</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status"></div>
 
 <script src="./scripts/chat.js"></script>
+<script src="./scripts/agent-ui.js"></script>
 </body>
 </html>
