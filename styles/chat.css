@@ -1114,3 +1114,47 @@ textarea:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .typing-cursor::after { animation: none; }
 }
+
+.search-hint {padding:7px 7px 0;color:#84929f;font:10px var(--mono);}
+.sidebar-bottom .identity strong {font:700 11px var(--mono);letter-spacing:.35px;color:var(--gold);}
+.home-button {
+  display:inline-flex;align-items:center;justify-content:center;padding:8px 11px;
+  border:1px solid #68572f;border-radius:7px;color:var(--ivory);text-decoration:none;
+  font:800 12px var(--font);letter-spacing:1px;white-space:nowrap;background:#181a1a;
+}
+.home-button span {color:var(--gold);}
+.home-button:hover {background:var(--gold-bg);border-color:var(--gold);}
+.home-button:focus-visible {outline:2px solid var(--gold);outline-offset:2px;}
+.topbar {position:relative;z-index:40;overflow:visible;}
+.thread.meeting-grid {
+  background-color:#090d11;
+  background-image:linear-gradient(to right,#17242c 1px,transparent 1px),
+                   linear-gradient(to bottom,#17242c 1px,transparent 1px);
+  background-size:40px 40px;background-position:center center;
+}
+.composer {position:relative;overflow:visible;}
+.mention-picker {
+  position:absolute;left:0;right:0;bottom:calc(100% + 9px);z-index:60;
+  padding:6px;background:#151b22;border:1px solid #806a39;border-radius:10px;
+  box-shadow:0 14px 28px rgba(0,0,0,.5);max-height:280px;overflow-y:auto;
+}
+.mention-heading {padding:7px 11px 10px;color:var(--muted);font:10px var(--mono);letter-spacing:1px;}
+.mention-option {
+  display:flex;width:100%;align-items:center;gap:10px;padding:8px 11px;
+  border:0;border-radius:7px;background:transparent;color:var(--ivory);text-align:left;
+}
+.mention-option:hover,.mention-option.selected {background:#352b19;}
+.mention-option strong {display:block;font-size:12px;}
+.mention-option small {display:block;margin-top:4px;color:var(--muted);font-size:10px;}
+.mention-option .agent-portrait {width:32px;height:32px;flex-basis:32px;}
+.inspector-close-arrow {color:var(--gold);}
+@media (min-width:1151px) {
+  .app.inspector-collapsed {grid-template-columns:275px minmax(0,1fr) 0px;}
+  .app.inspector-collapsed .inspector {display:none;}
+  .app.inspector-collapsed .inspector-toggle {display:inline-grid;}
+}
+@media (max-width:700px) {
+  .home-button {padding:7px 8px;font-size:10px;}
+  .topbar {padding-inline:9px;}
+  .topbar-actions {gap:4px;}
+}

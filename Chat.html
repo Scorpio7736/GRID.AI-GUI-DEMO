@@ -47,8 +47,9 @@
 
     <div class="sidebar-scroll">
       <input class="search-box" id="chatSearch"
-             placeholder="Search conversations..."
+             placeholder="Search text, @agent, or date..."
              aria-label="Search conversations">
+      <div class="search-hint">Message text · @MCP · 2026-11-22</div>
 
       <div class="section-heading">
         Conversations <small id="chatCount"></small>
@@ -63,8 +64,8 @@
       <div class="identity">
         <div class="identity-avatar">MC</div>
         <div>
-          <strong>Master Control</strong>
-          <small>Local interface preview</small>
+          <strong>YOU ARE MASTER CONTROL</strong>
+          <small>Operator identity · Demo environment</small>
         </div>
       </div>
     </div>
@@ -97,8 +98,11 @@
         <button class="text-button invite-button" id="inviteButton">
           + Invite agent
         </button>
-        <button class="icon-button inspector-toggle"
-                id="inspectorButton" aria-label="Session details">ⓘ</button>
+        <button class="icon-button inspector-toggle" id="inspectorButton"
+                aria-label="Expand session details" title="Toggle session details">←</button>
+        <a class="home-button" href="./index.html" aria-label="Grid.AI home" title="Back to home">
+          GRID<span>.AI</span>
+        </a>
       </div>
     </header>
 
@@ -108,6 +112,7 @@
 
     <footer class="composer-wrap">
       <div class="composer">
+        <div class="mention-picker hidden" id="mentionPicker" role="listbox" aria-label="Tag an agent"></div>
         <textarea id="messageInput"
           aria-label="Message"
           placeholder="Message an agent..."
@@ -127,7 +132,7 @@
         </div>
       </div>
       <div class="composer-caption">
-        Standalone preview · Browser-local conversations · No Grid.AI backend
+        Standalone preview · Refresh clears conversations · No Grid.AI backend
       </div>
     </footer>
   </main>
@@ -135,8 +140,7 @@
   <aside class="inspector" id="inspector">
     <div class="inspector-title">
       Session details
-      <button class="icon-button" id="closeInspector"
-              aria-label="Close details">×</button>
+      <button class="icon-button inspector-close-arrow" id="closeInspector" aria-label="Collapse session details" title="Collapse session details">→</button>
     </div>
 
     <div class="status-panel">
@@ -146,7 +150,7 @@
       </div>
       <p>
         All chat replies are scripted. Conversation history is
-        stored only in this browser's local storage.
+        held only in memory until you refresh this page.
       </p>
     </div>
 
