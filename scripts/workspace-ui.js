@@ -279,4 +279,47 @@
         ?.focus({ preventScroll: true });
     }
   });
+
+  // Run exactly once at initial page load, after chat.js and agent-ui.js
+  // have already rendered the initial agent list and empty-chat state.
+  // Each entry is revealed on its own beat; future list renders do not replay.
+  function startSidebarEntrance() {
+    const sidebar = app.querySelector(".sidebar");
+    if (!sidebar || !state.motionEnabled) return;
+
+    const headings = [...sidebar.querySelectorAll(".sidebar-scroll > .section-heading")];
+    const agentRows = [...sidebar.querySelectorAll("#agentList > .agent-row-wrap")];
+    const targets = [
+      sidebar.querySelector(".brand-home-link"),
+      sidebar.querySelector("#newChatButton"),
+      sidebar.querySelector("#meetingButton"),
+      sidebar.querySelector("#chatSearch"),
+      sidebar.querySelector(".search-hint"),
+      headings[0],
+      sidebar.querySelector(".reorder-hint"),
+      sidebar.querySelector("#chatList"),
+      headings[1],
+      ...agentRows,
+      sidebar.querySelector(".sidebar-bottom .identity")
+    ].filter(Boolean);
+
+    const staggerMs = 135;
+    const durationMs = 620;
+
+    targets.forEach((element, index) => {
+      element.style.setProperty("--sidebar-reveal-delay", index * staggerMs + "ms");
+      element.classList.add("sidebar-reveal-item");
+    });
+
+    // Remove entrance-only styling after the sequence finishes. This keeps
+    // hover effects, future chat rendering and resizing unaffected.
+    setTimeout(() => {
+      targets.forEach(element => {
+        element.classList.remove("sidebar-reveal-item");
+        element.style.removeProperty("--sidebar-reveal-delay");
+      });
+    }, (targets.length - 1) * staggerMs + durationMs + 90);
+  }
+
+  startSidebarEntrance();
 })();

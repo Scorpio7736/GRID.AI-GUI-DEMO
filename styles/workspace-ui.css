@@ -342,3 +342,31 @@
 .app.motion-disabled .inspector {
   transition-duration: 0.01ms !important;
 }
+
+/* First-load sidebar entrance.
+   Applied once by workspace-ui.js to the elements rendered at page startup.
+   No per-item animation class is added when conversations rerender. */
+@keyframes grid-sidebar-item-appear {
+  from {
+    opacity: 0;
+    transform: translate3d(-9px, 10px, 0);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+  }
+}
+
+.sidebar .sidebar-reveal-item {
+  animation: grid-sidebar-item-appear 620ms cubic-bezier(.22, 1, .36, 1) both;
+  animation-delay: var(--sidebar-reveal-delay, 0ms);
+}
+
+.app.motion-disabled .sidebar .sidebar-reveal-item {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+}
