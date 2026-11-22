@@ -11,14 +11,13 @@
 <body>
 <div class="designer-shell">
   <aside class="studio-sidebar" aria-label="GRID.AI navigation">
-    <a class="studio-brand" href="./Chat.html" title="GRID.AI Connect">
+    <div class="studio-brand" aria-label="GRID.AI">
       <span class="brand-mark" aria-hidden="true">◈</span>
       <span class="brand-copy"><strong>GRID<span>.AI</span></strong><small>CONTROL INTERFACE</small></span>
-    </a>
+    </div>
     <div class="sidebar-content">
-      <div class="nav-label">WORKSPACE</div>
-      <a class="studio-nav-link" href="./Chat.html"><span class="nav-icon" aria-hidden="true">▤</span><span>Connect</span><span class="nav-arrow" aria-hidden="true">↗</span></a>
-      <a class="studio-nav-link active" href="./Workflow-Designer.html" aria-current="page"><span class="nav-icon" aria-hidden="true">⌘</span><span>Workflow Designer</span><span class="nav-active-dot" aria-hidden="true"></span></a>
+      <div class="nav-label">CURRENT WORKSPACE</div>
+      <div class="studio-nav-link active" aria-label="Current workspace: Workflow Designer"><span class="nav-icon" aria-hidden="true">⌘</span><span>Workflow Designer</span><span class="nav-active-dot" aria-hidden="true"></span></div>
 
       <div class="nav-label nav-label-spaced">DESIGN ENVIRONMENT</div>
       <div class="sidebar-info"><span class="sidebar-info-icon" aria-hidden="true">◉</span><div><strong>Local design preview</strong><small>Scripted MCP responses</small></div></div>
@@ -40,7 +39,7 @@
 
   <main class="studio-main">
     <header class="studio-topbar">
-      <div class="breadcrumb"><a href="./Chat.html">GRID.AI</a><span class="breadcrumb-divider">/</span><span>WORKFLOW DESIGNER</span></div>
+      <div class="breadcrumb"><span class="breadcrumb-brand">GRID.AI</span><span class="breadcrumb-divider">/</span><span>WORKFLOW DESIGNER</span></div>
       <div class="topbar-actions">
         <span class="demo-pill"><span class="demo-pulse" aria-hidden="true"></span> UI DEMO</span>
         <button class="toolbar-button" id="resetFlow" type="button" title="Start a new workflow">↺ <span>New draft</span></button>

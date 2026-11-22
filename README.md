@@ -4,29 +4,40 @@ Standalone HTML, CSS, and JavaScript prototypes for the [Grid.AI](https://github
 
 ## Pages
 
-- `index.html` — zero-delay redirect to `Chat.html` so the deployment root opens the actual GRID.AI Connect demo.
-- `Chat.html` — Grid.AI Connect conversation prototype, including simulated agent chats, meetings, context exports, and a typewriter response effect.
+- `index.html` — standalone GRID.AI demo-hub placeholder. Page links will be added here later; there is no redirect.
+- `Chat.html` — standalone Grid.AI Connect conversation prototype, including simulated agent chats, meetings, context exports, and a typewriter response effect.
+- `Workflow-Designer.html` — standalone MCP-guided workflow blueprint designer with simulated chat and editable flow canvas.
 
 ## Project structure
 
 ```text
-index.html
-Chat.html
+index.html                  # Future demo hub, no links yet
+Chat.html                   # GRID.AI Connect
+Workflow-Designer.html      # Agentic workflow blueprint demo
 styles/
   index.css
   chat.css
   agent-ui.css
   workspace-ui.css
+  connect-media-demo.css
+  live-meeting-demo.css
+  live-tile-layout.css
+  workflow-designer.css
 scripts/
   index.js
   chat.js
   agent-ui.js
   workspace-ui.js
-Programs/    # character and program concept art
-World/       # world/environment reference art
+  connect-media-demo.js
+  live-meeting-demo.js
+  live-tile-layout.js
+  ui-sounds.js
+  workflow-designer.js
+Programs/                   # Agent art
+World/                      # Environment reference art
 ```
 
-Open `index.html` (automatically forwards to `Chat.html`) or open `Chat.html` directly to view the demo. No build tools are required.
+Open `Chat.html` or `Workflow-Designer.html` directly to view an individual demo. `index.html` is the future hub placeholder with no page links yet. No build tools are required.
 
 **Note:** These are UI prototypes. Chat responses are scripted and no Grid.AI backend or host operations are connected. Demo conversation history is in memory only and clears when the page refreshes.
 
@@ -49,7 +60,7 @@ Open `index.html` (automatically forwards to `Chat.html`) or open `Chat.html` di
 - **Meeting view:** Subtle grid background, stacked avatars and working participant actions.
 - **Agent mentions:** Type `@` in the composer to choose from the agents in the current chat; use arrow keys/Enter or click.
 - **Typewriter:** Animated scripted agent responses are on by default, including a skip control.
-- **Navigation:** Click the GRID.AI brand in the upper-left sidebar to return to `index.html`; arrow controls slide session details open/closed.
+- **Navigation:** GRID.AI branding is decorative, not a page link. Session-details arrow controls slide that panel open and closed. Demo pages are intentionally not linked to one another.
 - **Identity:** The lower-left sidebar identifies the operator as **YOU ARE MASTER CONTROL**.
 
 ## Workspace refinements
@@ -182,11 +193,11 @@ The topbar offers **♫ Sounds ON / ♪ Sounds OFF**, available in both regular 
 
 ## Preparing free subdomain hosting
 
-The repository root now opens **GRID.AI Connect** through a same-directory redirect to `Chat.html`, rather than the former placeholder. It can be deployed independently from the main portfolio as a static Vercel project linked to this public GitHub repository. The proposed custom hostname is `gridai-demo.jacklondon.site`. This repository does **not** contain DNS configuration; the subdomain must be assigned to the hosting project and verified with the DNS provider separately. Opening the project on Vercel should not alter the main `jacklondon.site` project's routing.
+The repository root currently opens a **GRID.AI demo-hub placeholder** with no page links or redirects. Use direct page URLs until hub navigation is designed. It can be deployed independently from the main portfolio as a static Vercel project linked to this public GitHub repository. The proposed custom hostname is `gridai-demo.jacklondon.site`. This repository does **not** contain DNS configuration; the subdomain must be assigned to the hosting project and verified with the DNS provider separately. Opening the project on Vercel should not alter the main `jacklondon.site` project's routing.
 
 ## Agentic Workflow Designer (standalone UI prototype)
 
-- Open `Workflow-Designer.html` directly or follow **Agentic Workflow Designer** from the Connect sidebar. The page loads `styles/workflow-designer.css` and `scripts/workflow-designer.js` independently from Connect.
+- Open `Workflow-Designer.html` directly. The page loads `styles/workflow-designer.css` and `scripts/workflow-designer.js` independently from Connect, without any links between demo pages.
 - The responsive workspace pairs **Design with MCP**, a scripted planning conversation, with a **Workflow Blueprint** canvas that displays ordered trigger, processing, approval, and output nodes.
 - Four quick-start prompts generate example plans for engineering briefings, pull request reviews, file organization, and resource monitoring. Other prompts create a generic customizable plan. The browser-side responses use keyword matching, **not a live AI model**.
 - A few conversational refinements are supported as a demo: add/remove approval, change schedule, assign a specialist, rename a flow, or update the delivery step.

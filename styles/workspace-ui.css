@@ -16,24 +16,6 @@
   cursor: col-resize;
 }
 
-.brand-home-link {
-  color: inherit;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background-color 180ms ease, box-shadow 180ms ease;
-}
-.brand-home-link:hover {
-  background: #191c20;
-  box-shadow: inset 3px 0 0 var(--gold);
-}
-.brand-home-link:focus-visible {
-  outline: 2px solid var(--gold);
-  outline-offset: -3px;
-}
-.brand-home-link:hover .brand-name {
-  color: #fffdf3;
-}
-
 .sidebar,
 .inspector {
   min-width: 0;
@@ -240,7 +222,7 @@
 .app.motion-disabled .chat-entry,
 .app.motion-disabled .chat-hover-details,
 .app.motion-disabled .pane-resizer::after,
-.app.motion-disabled .brand-home-link {
+.app.motion-disabled .brand {
   transition-duration: 0.01ms !important;
 }
 
