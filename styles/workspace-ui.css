@@ -222,7 +222,7 @@
 .app.motion-disabled .chat-entry,
 .app.motion-disabled .chat-hover-details,
 .app.motion-disabled .pane-resizer::after,
-.app.motion-disabled .brand-home-link {
+.app.motion-disabled .brand {
   transition-duration: 0.01ms !important;
 }
 
