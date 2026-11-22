@@ -93,11 +93,15 @@ renderAgentList = function renderAgentListWithPortraits() {
 
 function agentUiRenderParticipants() {
   const chat = currentChat();
-  if (!chat || !chat.participants.includes(selectedParticipant)) {
+  const isMeeting = chat?.type === "meeting";
+
+  // Header portraits and their action menu are exclusive to agent meetings.
+  // Switching to a private chat also closes any previously opened meeting menu.
+  if (!isMeeting || !chat.participants.includes(selectedParticipant)) {
     selectedParticipant = null;
   }
 
-  $("headerParticipants").innerHTML = chat
+  $("headerParticipants").innerHTML = isMeeting
     ? chat.participants.map((agent, index) => `
       <button class="header-participant" data-portrait-agent="${agent}"
               style="z-index:${selectedParticipant === agent ? 20 : chat.participants.length-index}"
@@ -117,7 +121,6 @@ function agentUiRenderParticipants() {
   }
 
   const agent = selectedParticipant;
-  const inMeeting = chat.type === "meeting";
   popup.classList.remove("hidden");
   popup.innerHTML = `
     <div class="popup-person">
@@ -132,15 +135,15 @@ function agentUiRenderParticipants() {
       </div>
     </div>
     <button class="popup-action danger" data-portrait-action="remove"
-            ${inMeeting ? "" : 'disabled title="Meeting only"'}>
+            >
       Remove from meeting
     </button>
     <button class="popup-action" data-portrait-action="whisper"
-            ${inMeeting ? "" : 'disabled title="Meeting only"'}>
+            >
       Whisper to ${agent}
     </button>
     <button class="popup-action" data-portrait-action="move"
-            ${inMeeting ? "" : 'disabled title="Meeting only"'}>
+            >
       Move to new chat
     </button>
   `;
