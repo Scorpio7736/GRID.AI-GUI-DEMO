@@ -794,7 +794,16 @@ function beginAgentInvitations(chat, agents) {
           destination.participants.length >= 6) return;
 
       const wasPrivate = destination.type === "private";
-      if (wasPrivate) destination.livePrivateHistoryBoundary ??= destination.messages.length;
+      if (wasPrivate) {
+        destination.livePrivateHistoryBoundary ??= destination.messages.length;
+        // Private history remains locally visible to Master Control, but
+        // the newly joined agent is introduced in a new shared segment.
+        destination.messages.push(makeMessage(null,
+          "New shared meeting segment · Demo", { kind: "divider" }));
+        destination.messages.push(makeMessage(null,
+          "Earlier private messages remain visible to you but are not provided to newly joined agents as context in this demo.",
+          { kind: "notice" }));
+      }
       destination.participants = ORDER.filter(name =>
         destination.participants.includes(name) || name === agent
       );
