@@ -16,7 +16,6 @@
   const camera = get("liveVideoToggle");
   const cameraLabel = get("liveVideoLabel");
   const chatToggle = get("liveChatToggle");
-  const addAgent = get("liveAddAgent");
   const leave = get("liveLeaveButton");
   const activity = get("liveSpeakingStatus");
   const main = document.querySelector(".main");
@@ -27,7 +26,7 @@
   const bottomContinueMenu = get("liveContinueMenu");
   if (!stage || !grid || !title || !count || !toggle || !inspectorHelp ||
       !mic || !micLabel || !camera || !cameraLabel || !chatToggle ||
-      !addAgent || !leave || !activity || !main || !workspace || !chatSide ||
+      !leave || !activity || !main || !workspace || !chatSide ||
       !bottomContinue || !bottomContinueButton || !bottomContinueMenu) return;
 
   let stageSignature = null;
@@ -229,10 +228,6 @@
     const joining = queuedInvitations(chat).length;
     count.textContent = (chat.participants.length + 1) + " participants" +
       (joining ? " · " + joining + " joining…" : "") + " · demo";
-    addAgent.disabled = chat.participants.length + joining >= 6 || modeExitTimer !== null;
-    addAgent.title = addAgent.disabled
-      ? "This meeting has reached its six-agent limit, including those joining"
-      : "Invite an agent into this same Live Meeting";
     chatToggle.textContent = chat.liveChatVisible === false ? "Show chat" : "Hide chat";
     chatToggle.setAttribute("aria-pressed", String(chat.liveChatVisible !== false));
     chatToggle.setAttribute("aria-expanded", String(chat.liveChatVisible !== false));
@@ -316,12 +311,6 @@
 
   toggle.addEventListener("click", () => changeMeetingMode(!currentChat()?.liveMeeting));
   leave.addEventListener("click", () => changeMeetingMode(false));
-  addAgent.addEventListener("click", () => {
-    const chat = currentChat();
-    if (!chat?.liveMeeting ||
-        chat.participants.length + queuedInvitations(chat).length >= 6) return;
-    openModal("invite", chat.id);
-  });
   chatToggle.addEventListener("click", () => {
     const chat = currentChat();
     if (!chat?.liveMeeting) return;

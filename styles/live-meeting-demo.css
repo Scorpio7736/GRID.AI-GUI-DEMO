@@ -368,17 +368,6 @@
   transition: none !important;
 }
 
-/* Invite agents directly into the existing Live Meeting session. */
-.live-add-agent-button {
-  border-color: #665532;
-  color: var(--gold);
-  background: #282419;
-}
-.live-add-agent-button:hover:not(:disabled) {
-  border-color: #ae914c;
-  background: #3a3020;
-}
-
 /* A newly invited agent enters a Live Meeting with an individual
    fade/scale entrance, portrait halo, and transient JOINED caption.
    Existing agents never replay this animation on normal rerenders. */

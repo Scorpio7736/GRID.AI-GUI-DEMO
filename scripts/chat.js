@@ -783,6 +783,11 @@ function beginAgentInvitations(chat, agents) {
 
   for (const agent of invited) {
     chat.pendingInvitations.push(agent);
+    // Show an invitation notice immediately in the original conversation.
+    // The separate arrival notice and greeting follow after its random delay.
+    chat.messages.push(makeMessage(null,
+      "Invitation sent to " + agent, { kind: "notice" }
+    ));
     const chatId = chat.id;
     const timer = setTimeout(() => {
       pendingInviteTimers.delete(timer);
