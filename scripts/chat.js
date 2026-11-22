@@ -126,6 +126,27 @@ function makeMessage(role, text, extras = {}) {
   };
 }
 
+// Three existing World artworks used as randomized chat backdrops.
+// The shuffled deck shows all three before repeating; nothing is persisted.
+const CHAT_WALLPAPERS = Object.freeze([
+  "./World/c19580d4-e3e4-4d61-a115-355b48db6b96.png",
+  "./World/f79a3fbb-dd06-4115-8d66-63ca40ee2787.png",
+  "./World/ff4551c3-faa4-4ca0-8aa2-a4564a824ef4.png"
+]);
+let chatWallpaperDeck = [];
+
+function nextChatWallpaper() {
+  if (chatWallpaperDeck.length === 0) {
+    chatWallpaperDeck = [...CHAT_WALLPAPERS];
+    for (let i = chatWallpaperDeck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [chatWallpaperDeck[i], chatWallpaperDeck[j]] =
+        [chatWallpaperDeck[j], chatWallpaperDeck[i]];
+    }
+  }
+  return chatWallpaperDeck.pop();
+}
+
 function makeChat(title, type, participants, messages = []) {
   const timestamp = nowISO();
 
@@ -135,6 +156,7 @@ function makeChat(title, type, participants, messages = []) {
     type,
     participants: [...participants],
     messages,
+    wallpaper: nextChatWallpaper(),
     approval: null,
     createdAt: timestamp,
     updatedAt: timestamp
@@ -517,7 +539,17 @@ function renderInspector() {
 
 function render() {
   const chat = currentChat();
-  $("thread").classList.toggle("meeting-grid", chat?.type === "meeting");
+  const thread = $("thread");
+  thread.classList.toggle("meeting-grid", chat?.type === "meeting");
+  thread.classList.toggle("has-chat-wallpaper", !!chat?.wallpaper);
+
+  // Assign only a known, repository-local image; do not accept arbitrary URLs.
+  if (chat?.wallpaper && CHAT_WALLPAPERS.includes(chat.wallpaper)) {
+    thread.style.setProperty("--chat-wallpaper", 'url("' + chat.wallpaper + '")');
+  } else {
+    thread.classList.remove("has-chat-wallpaper");
+    thread.style.removeProperty("--chat-wallpaper");
+  }
   if (typeof agentUiDismissMention === "function") agentUiDismissMention();
   syncInspectorControls();
 

@@ -89,3 +89,7 @@ The Connect GUI demo now defaults to **Animations ON**, with a separate toggle a
 - Agent portraits and names remain visible, and the existing reply typewriter starts after the bubble disappears.
 - Pending indicators exist only in page memory, never enter the transcript, and are excluded from TXT/Markdown exports. They are recreated when returning to a conversation with an outstanding response.
 - The **Animations ON/OFF** control can stop the dot bounce without removing the simulated wait.
+
+## Conversation wallpapers
+
+New private conversations and meetings automatically receive a randomized wallpaper from the three existing UUID-named PNG artworks in `World/`. Each chat retains its assigned wallpaper when switching between conversations. The three images are shuffled before any repeat, and meeting backgrounds preserve the GRID pattern. A dark overlay keeps messages legible. Wallpapers are ephemeral, reset on refresh, and do not appear in the empty welcome screen.
