@@ -4,7 +4,7 @@ Standalone HTML, CSS, and JavaScript prototypes for the [Grid.AI](https://github
 
 ## Pages
 
-- `index.html` — minimal entry-page placeholder; renders “Hello World” from JavaScript.
+- `index.html` — zero-delay redirect to `Chat.html` so the deployment root opens the actual GRID.AI Connect demo.
 - `Chat.html` — Grid.AI Connect conversation prototype, including simulated agent chats, meetings, context exports, and a typewriter response effect.
 
 ## Project structure
@@ -26,7 +26,7 @@ Programs/    # character and program concept art
 World/       # world/environment reference art
 ```
 
-Open `index.html` or `Chat.html` in a browser to view the demos. No build tools are required.
+Open `index.html` (automatically forwards to `Chat.html`) or open `Chat.html` directly to view the demo. No build tools are required.
 
 **Note:** These are UI prototypes. Chat responses are scripted and no Grid.AI backend or host operations are connected. Demo conversation history is in memory only and clears when the page refreshes.
 
@@ -179,3 +179,7 @@ A **new pending approval request** automatically reveals the Live Meeting chat p
 GRID.AI Connect has **short, original, synthesized event sounds** via the browser's Web Audio API. Cues cover invitations, agent joins and departures, sending and receiving messages, system notices while Live Meeting chat is hidden, new approval requests, approval/rejection decisions, entering/exiting Live Meeting, and a very subtle chat-panel toggle click. Effects are brief, non-looping, and mixed at low volume; there is **no background music, speech synthesis, microphone access, streamed audio, or external audio file**.
 
 The topbar offers **♫ Sounds ON / ♪ Sounds OFF**, available in both regular chats and Live Meeting. Effects are enabled by default but remain silent until the browser has received a genuine pointer or keyboard gesture and has allowed an AudioContext to run. Muting immediately fades the audio to silence. Unsupported/restricted browsers degrade gracefully, and the demo setting resets on refresh. Notifications intentionally do not double-play over recent join/leave/approval cues.
+
+## Preparing free subdomain hosting
+
+The repository root now opens **GRID.AI Connect** through a same-directory redirect to `Chat.html`, rather than the former placeholder. It can be deployed independently from the main portfolio as a static Vercel project linked to this public GitHub repository. The proposed custom hostname is `gridai-demo.jacklondon.site`. This repository does **not** contain DNS configuration; the subdomain must be assigned to the hosting project and verified with the DNS provider separately. Opening the project on Vercel should not alter the main `jacklondon.site` project's routing.
