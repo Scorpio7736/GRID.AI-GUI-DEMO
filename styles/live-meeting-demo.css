@@ -301,3 +301,29 @@
   .live-participant-face .agent-portrait { width: 60px; height: 60px; flex-basis: 60px; }
   .live-user-tile .live-user-avatar { width: 60px; height: 60px; font-size: 18px; }
 }
+
+/* Two-phase chat ↔ Live Meeting transition.
+   The shared workspace (stage + chat/composer) fades as one surface while
+   navigation and the topbar stay steady. Both directions use the same timing. */
+.connect-workspace.live-mode-fade-out {
+  opacity: 0;
+  transform: translateY(-9px);
+  pointer-events: none;
+  transition: opacity 190ms ease-in, transform 190ms ease-in;
+}
+.connect-workspace.live-mode-fade-in {
+  animation: live-mode-arrive 320ms cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes live-mode-arrive {
+  from { opacity: 0; transform: translateY(11px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.app.motion-disabled .connect-workspace.live-mode-fade-out,
+.app.motion-disabled .connect-workspace.live-mode-fade-in {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition: none;
+  animation: none;
+}
+

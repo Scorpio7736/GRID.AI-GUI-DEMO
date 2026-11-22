@@ -19,15 +19,36 @@
   const leave = get("liveLeaveButton");
   const activity = get("liveSpeakingStatus");
   const main = document.querySelector(".main");
+  const workspace = get("connectWorkspace");
   if (!stage || !grid || !title || !count || !toggle || !inspectorHelp ||
       !mic || !micLabel || !camera || !cameraLabel || !chatToggle ||
-      !leave || !activity || !main) return;
+      !leave || !activity || !main || !workspace) return;
 
   let stageSignature = null;
   let visibleChatId = null;
   let speakingChatId = null;
   let speakingAgent = null;
   let speakingTimer = null;
+
+  // Two-phase transition: fade the current conversation out before swapping
+  // layouts, then reveal the Live Meeting (or normal chat) in place.
+  const MODE_EXIT_MS = 190;
+  const MODE_ENTER_MS = 320;
+  let modeExitTimer = null;
+  let modeEnterTimer = null;
+  let modeTransitionChatId = null;
+  let requestedLiveMode = null;
+
+  function cancelModeTransition() {
+    if (modeExitTimer !== null) clearTimeout(modeExitTimer);
+    if (modeEnterTimer !== null) clearTimeout(modeEnterTimer);
+    modeExitTimer = null;
+    modeEnterTimer = null;
+    modeTransitionChatId = null;
+    requestedLiveMode = null;
+    workspace.classList.remove("live-mode-fade-out", "live-mode-fade-in");
+    leave.disabled = false;
+  }
 
   function clearSpeaking() {
     if (speakingTimer !== null) clearTimeout(speakingTimer);
@@ -107,6 +128,12 @@
     const enabled = !!chat?.liveMeeting;
     const id = chat?.id ?? null;
 
+    // Switching to a different conversation cancels a queued mode change;
+    // the pending timer must never alter a now-inactive conversation.
+    if (modeTransitionChatId !== null && id !== modeTransitionChatId) {
+      cancelModeTransition();
+    }
+
     if (id !== visibleChatId || !enabled) {
       clearSpeaking();
       visibleChatId = id;
@@ -116,13 +143,14 @@
     main.classList.toggle("live-meeting-mode", enabled);
     main.classList.toggle("live-chat-hidden", enabled && chat.liveChatVisible === false);
     stage.classList.toggle("hidden", !enabled);
-    toggle.disabled = !chat;
+    toggle.disabled = !chat || modeExitTimer !== null;
+    leave.disabled = modeExitTimer !== null;
     toggle.textContent = enabled ? "Return to chat view" : "Start live meeting";
     inspectorHelp.textContent = !chat
       ? "Select a conversation to start a live meeting preview."
       : enabled
         ? "Live preview active. This is the same conversation and transcript; no real audio or video."
-        : "Turn this conversation into a Teams-style call preview without changing its transcript or participants.";
+        : "Turn this conversation into a Teams-style Live Meeting preview without changing its transcript or participants.";
 
     if (!enabled) return;
 
@@ -139,9 +167,7 @@
     drawTiles(chat);
   }
 
-  function changeMeetingMode(enabled) {
-    const chat = currentChat();
-    if (!chat) return;
+  function applyMeetingMode(chat, enabled) {
     chat.liveMeeting = enabled;
     if (enabled) {
       chat.liveChatVisible = true;
@@ -151,9 +177,60 @@
     clearSpeaking();
     render();
     showToast(enabled
-      ? "Live meeting preview opened — no real call, microphone or camera."
+      ? "Live Meeting preview opened — no real microphone, video or audio."
       : "Returned to chat view. Conversation history is unchanged.");
   }
+
+  function changeMeetingMode(enabled) {
+    const chat = currentChat();
+    if (!chat || modeExitTimer !== null) return;
+    cancelModeTransition();
+    if (!!chat.liveMeeting === enabled) return;
+
+    // An explicit Animations OFF selection switches without a delay.
+    if (!state.motionEnabled) {
+      applyMeetingMode(chat, enabled);
+      return;
+    }
+
+    modeTransitionChatId = chat.id;
+    requestedLiveMode = enabled;
+    toggle.disabled = true;
+    leave.disabled = true;
+    workspace.classList.add("live-mode-fade-out");
+
+    modeExitTimer = setTimeout(() => {
+      modeExitTimer = null;
+      if (currentChat()?.id !== chat.id || !findChat(chat.id)) {
+        cancelModeTransition();
+        syncLiveMeeting();
+        return;
+      }
+
+      // Swap views only after the old one is fully faded out.
+      applyMeetingMode(chat, enabled);
+      workspace.classList.remove("live-mode-fade-out");
+      workspace.classList.add("live-mode-fade-in");
+
+      modeEnterTimer = setTimeout(() => {
+        cancelModeTransition();
+        syncLiveMeeting();
+      }, MODE_ENTER_MS + 50);
+    }, MODE_EXIT_MS);
+  }
+
+  // If the user turns animations off during the fade, finish immediately.
+  get("motionToggle")?.addEventListener("click", () => {
+    if (state.motionEnabled) return;
+    const id = modeTransitionChatId;
+    const enabled = requestedLiveMode;
+    const wasExiting = modeExitTimer !== null;
+    cancelModeTransition();
+    if (wasExiting && currentChat()?.id === id) {
+      applyMeetingMode(currentChat(), enabled);
+    }
+    syncLiveMeeting();
+  });
 
   toggle.addEventListener("click", () => changeMeetingMode(!currentChat()?.liveMeeting));
   leave.addEventListener("click", () => changeMeetingMode(false));
