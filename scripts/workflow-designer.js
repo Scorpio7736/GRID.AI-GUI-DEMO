@@ -58,7 +58,10 @@
         item.flow.steps.every(step => step && typeof step.id === "string" &&
           typeof step.kind === "string" && KINDS[step.kind] &&
           typeof step.title === "string" && typeof step.description === "string" &&
-          typeof step.agent === "string")
+          typeof step.agent === "string" &&
+          (!step.skill || (typeof step.skill.filename === "string" &&
+            typeof step.skill.text === "string" && step.skill.text.length <= 70000 &&
+            Number.isFinite(step.skill.bytes) && step.skill.bytes <= MAX_SKILL_BYTES)))
       ).slice(0, MAX_LIBRARY_ENTRIES);
     } catch {
       return [];
@@ -371,6 +374,7 @@
       top.append(el("span", "node-number", String(i + 1).padStart(2, "0") + " / " + KINDS[step.kind].label));
       top.append(el("span", "node-name", step.title));
       top.append(el("span", "node-agent", step.agent));
+      if (step.skill) top.append(el("span", "node-skill-tag", "SKILL"));
       copy.append(top, el("span", "node-description", step.description));
       const arrow = el("span", "node-arrow", "›");
       arrow.setAttribute("aria-hidden", "true");
@@ -388,6 +392,57 @@
     list.append(terminal);
   }
 
+
+  const MAX_SKILL_BYTES = 64 * 1024;
+
+  function renderStepSkill(step) {
+    const skill = step.skill;
+    const fileLabel = $("skillFileStatus");
+    const hasSkill = Boolean(skill && typeof skill.filename === "string" &&
+      typeof skill.text === "string");
+    fileLabel.textContent = hasSkill ?
+      skill.filename + " · " + (skill.bytes / 1024).toFixed(1) + " KB" :
+      "No skill attached";
+    fileLabel.classList.toggle("has-skill", hasSkill);
+    $("removeSkill").hidden = !hasSkill;
+    const details = $("skillPreview");
+    details.hidden = !hasSkill;
+    details.open = false;
+    $("skillPreviewText").textContent = hasSkill ? skill.text : "";
+  }
+
+  async function attachSkillFile(file) {
+    const step = currentStep();
+    const flow = state.flow;
+    if (!file || !step) return;
+    const filename = String(file.name || "").split(/[\\/]/).pop().slice(0, 120);
+    if (!/\.(txt|md)$/i.test(filename)) {
+      notify("Select a .txt or .md instruction file.");
+      return;
+    }
+    if (file.size > MAX_SKILL_BYTES) {
+      notify("Skill file too large. Maximum size is 64 KB.");
+      return;
+    }
+    try {
+      const text = await file.text();
+      if (!text.trim() || text.includes("\u0000")) {
+        notify("Skill instructions must contain readable text.");
+        return;
+      }
+      // File reads are asynchronous: never attach to a different selected step.
+      if (state.flow !== flow || currentStep() !== step) {
+        notify("Step changed while reading the skill. Select it and upload again.");
+        return;
+      }
+      step.skill = {filename, text, bytes: file.size};
+      commitRevision();
+      notify("Skill attached to " + step.title + " · save workflow to retain it");
+    } catch {
+      notify("Could not read that skill file.");
+    }
+  }
+
   function renderInspector() {
     const step = currentStep();
     $("stepInspector").hidden = !step;
@@ -400,6 +455,7 @@
     $("moveStepUp").disabled = index <= 1;
     $("moveStepDown").disabled = index === 0 || index === state.flow.steps.length - 1;
     $("removeStep").disabled = index === 0;
+    renderStepSkill(step);
   }
 
   function render() {
@@ -612,7 +668,9 @@
       trigger: {display: state.flow.trigger, connected: false},
       steps: state.flow.steps.map((step, index) => ({
         position: index + 1, id: step.id, type: step.kind,
-        agent: step.agent, title: step.title, instructions: step.description
+        agent: step.agent, title: step.title, instructions: step.description,
+        skill: step.skill ? {fileName: step.skill.filename,
+          sizeBytes: step.skill.bytes, content: step.skill.text} : null
       })),
       executionEnabled: false,
       note: "UI concept only. This JSON is not an executable GRID.AI workflow."
@@ -670,6 +728,18 @@
     render();
     message("MCP", "New draft started. What should we automate next?");
     notify("New workflow draft ready");
+  });
+  $("skillUpload").addEventListener("change", async event => {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = "";
+    if (file) await attachSkillFile(file);
+  });
+  $("removeSkill").addEventListener("click", () => {
+    const step = currentStep();
+    if (!step || !step.skill) return;
+    delete step.skill;
+    commitRevision();
+    notify("Custom skill removed from this step");
   });
   $("closeInspector").addEventListener("click", () => {
     state.selectedStepId = null;

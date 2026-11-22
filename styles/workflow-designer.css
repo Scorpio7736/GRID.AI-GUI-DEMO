@@ -40,11 +40,11 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible,
 .sidebar-info strong,.sidebar-info small{display:block}
 .sidebar-info strong{font-size:11px;font-weight:600}
 .sidebar-info small{font-size:10px;color:#6f808f;margin-top:3px}
-.sidebar-promo{margin-top:auto;margin-bottom:16px;border:1px solid #3d3829;border-radius:13px;background:radial-gradient(circle at 80% 10%,#342b18 0,transparent 65%),linear-gradient(150deg,#191b1a,#111519);padding:18px;min-height:205px;overflow:hidden;position:relative}
-.promo-kicker{color:var(--gold-dim);font:9px var(--mono);letter-spacing:1.2px}
-.promo-symbol{position:absolute;top:21px;right:12px;color:#6d5a3050;font-size:92px;line-height:1}
-.sidebar-promo strong{display:block;margin-top:57px;color:var(--ivory);font-size:14px}
-.sidebar-promo p{font-size:11px;color:#a3abb3;line-height:1.65;margin:7px 0 0;max-width:190px}
+
+
+
+
+
 .sidebar-operator{border-top:1px solid var(--line-soft);padding:18px 16px;display:flex;gap:11px;align-items:center}
 .operator-avatar{width:33px;height:33px;border-radius:50%;border:1px solid #8e743c;background:#322817;color:var(--gold);font:11px var(--mono);display:grid;place-items:center;flex-shrink:0}
 .sidebar-operator strong,.sidebar-operator small{display:block}
@@ -208,8 +208,8 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible,
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
 @media(min-width:1650px){.studio-grid{grid-template-columns:minmax(450px,1fr) 430px}}
-@media(max-width:1230px){.designer-shell{grid-template-columns:208px minmax(0,1fr)}.studio-grid{grid-template-columns:minmax(340px,1fr) 350px;gap:12px}.studio-intro,.studio-topbar{padding-left:22px;padding-right:22px}.studio-grid{padding-left:22px;padding-right:22px}.studio-intro h1{font-size:29px}.intro-stat{display:none}.canvas-hint{display:none}.sidebar-promo{padding:13px}}
-@media(max-width:1050px){.studio-grid{grid-template-columns:minmax(0,1fr)}.mcp-panel{position:static;max-height:none;min-height:600px}.mcp-messages{min-height:290px;max-height:410px}.blueprint-panel{min-height:600px}.workflow-canvas{min-height:330px}.sidebar-promo{display:none}}
+@media(max-width:1230px){.designer-shell{grid-template-columns:208px minmax(0,1fr)}.studio-grid{grid-template-columns:minmax(340px,1fr) 350px;gap:12px}.studio-intro,.studio-topbar{padding-left:22px;padding-right:22px}.studio-grid{padding-left:22px;padding-right:22px}.studio-intro h1{font-size:29px}.intro-stat{display:none}.canvas-hint{display:none}}
+@media(max-width:1050px){.studio-grid{grid-template-columns:minmax(0,1fr)}.mcp-panel{position:static;max-height:none;min-height:600px}.mcp-messages{min-height:290px;max-height:410px}.blueprint-panel{min-height:600px}.workflow-canvas{min-height:330px}}
 @media(max-width:710px){.designer-shell{display:block}.studio-sidebar{position:relative;top:auto;height:auto;min-height:0;overflow:visible;border-right:0;border-bottom:1px solid var(--line);display:block}.studio-brand{height:62px;padding:10px 16px;border:0}.brand-mark{width:35px;height:35px;font-size:25px}.brand-copy strong{font-size:16px}.brand-copy small{font-size:8px}.sidebar-content{display:flex;flex-direction:row;padding:0 13px 12px;gap:6px}.nav-label,.sidebar-info,.sidebar-operator{display:none}.studio-nav-link{min-height:35px;font-size:11px;padding:0 10px}.nav-icon{font-size:15px;width:auto}.studio-topbar{height:auto;min-height:60px;padding:10px 14px;flex-wrap:wrap;gap:9px}.topbar-actions{gap:5px}.demo-pill{display:none}.toolbar-button{font-size:11px;min-height:32px;padding:0 9px}.studio-intro{padding:25px 16px 18px}.studio-intro h1{font-size:28px}.studio-intro p{font-size:12px}.studio-grid{padding:0 12px 22px;gap:15px}.panel-heading{padding:15px}.blueprint-summary{padding:15px}.canvas-toolbar{padding:12px 11px;flex-wrap:wrap}.canvas-tools{margin-left:auto}.canvas-title{font-size:9px}.flow-list{padding:21px 12px}.flow-node{padding:11px;gap:9px}.node-icon{width:33px;height:33px}.node-description{font-size:10px}.editor-grid{grid-template-columns:1fr}.field-wide{grid-column:auto}.summary-metrics{grid-template-columns:1fr 1fr 1.3fr}.metric{padding:9px}.mcp-panel{min-height:550px}.mcp-messages{min-height:260px}.blueprint-panel{min-height:570px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
@@ -271,4 +271,86 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible,
 @media(max-width:560px){
   .topbar-actions{flex-wrap:wrap;justify-content:flex-end}
   .toolbar-button{gap:4px;padding:0 8px;font-size:10px}
+}
+
+
+/* Per-step instruction attachment. The file is only read in this browser. */
+.step-skill-section{margin-top:13px;padding:12px 13px;border:1px solid #374751;background:#101921;border-radius:8px}
+.skill-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.skill-title-row p{margin:5px 0 0;font-size:10px;color:#96a8b5;line-height:1.35}
+.skill-upload-button{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;font-size:10px;padding:7px 9px}
+.skill-upload-button:hover{color:var(--gold);border-color:var(--gold-dim)}
+.skill-file-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}
+.skill-file-status{min-width:0;overflow-wrap:anywhere;color:#93a4b1;font:10px/1.5 var(--mono)}
+.skill-file-status.has-skill{color:#a2e3bb}
+.skill-remove{flex-shrink:0;border:0;background:transparent;color:#e2a4aa;font-size:10px;padding:4px 5px}
+.skill-remove:hover{text-decoration:underline}
+.skill-preview{margin-top:8px;border-top:1px solid #34424a;padding-top:8px}
+.skill-preview summary{cursor:pointer;color:var(--gold-dim);font-size:10px}
+.skill-preview pre{max-height:150px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:9px;border-radius:5px;background:#0a1016;color:#c4d0d9;font:10px/1.5 var(--mono)}
+.skill-note{font-size:9px;color:#7f909e;margin:9px 0 0}
+.node-skill-tag{color:#8cdbaf;border:1px solid #3b6a51;background:#1b3628;border-radius:4px;padding:2px 5px;font:9px var(--mono)}
+
+/* Desktop: one viewport of workspace chrome; only workflow canvas,
+   MCP transcript, selected step inspector, and sidebar lists can scroll. */
+@media (min-width:1051px){
+  html,body{height:100%;overflow:hidden}
+  .designer-shell{height:100dvh;min-height:0;overflow:hidden}
+  .studio-main{height:100dvh;min-height:0;overflow:hidden}
+  .studio-topbar{position:relative;top:auto;height:58px;min-height:58px;flex:0 0 58px}
+  .studio-intro{flex:0 0 auto;align-items:center;gap:16px;padding:12px clamp(18px,2.4vw,34px) 13px}
+  .studio-intro h1{font-size:clamp(23px,2.1vw,30px);margin:5px 0 4px;line-height:1.14;letter-spacing:-.7px}
+  .studio-intro p{font-size:11px;line-height:1.4;max-width:780px}
+  .eyebrow{font-size:9px;letter-spacing:1.2px}
+  .eyebrow-tag{padding:2px 6px}
+  .intro-stat{min-width:180px;padding-left:13px;gap:2px}
+  .intro-stat strong{font-size:12px}
+  .intro-stat small{font-size:10px}
+  .studio-grid{flex:1 1 0;min-height:0;overflow:hidden;gap:12px;padding:0 clamp(18px,2.4vw,34px) 14px}
+  .blueprint-panel,.mcp-panel{height:100%;min-height:0;max-height:none;overflow:hidden;align-self:stretch}
+  .panel-heading{min-height:55px;padding:9px 15px}
+  .panel-heading h2{margin-top:2px;font-size:14px}
+  .blueprint-summary{padding:9px 15px}
+  .blueprint-summary h3{font-size:16px;margin:4px 0}
+  .blueprint-summary p{font-size:10px;line-height:1.4}
+  .blueprint-glyph{width:32px;height:32px;font-size:20px}
+  .summary-metrics{margin-top:9px}
+  .metric{padding:6px 9px;gap:2px}
+  .metric strong{font-size:14px}
+  .canvas-toolbar{padding:8px 12px 8px 15px;gap:8px}
+  .small-button{font-size:10px;padding:6px 8px}
+  .workflow-canvas{flex:1 1 0;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+  .flow-list{min-height:0;padding:12px 14px 20px}
+  .flow-node{padding:10px 12px;gap:9px}
+  .flow-connector{height:22px}
+  .step-inspector{flex:0 1 auto;min-height:0;max-height:min(36dvh,310px);overflow-y:auto;overscroll-behavior:contain;padding:12px 15px}
+  .inspector-heading{margin-bottom:9px}
+  .editor-grid{gap:9px}
+  .editor-field textarea{min-height:48px}
+  .editor-actions{margin-top:10px}
+  .canvas-footer{min-height:35px;padding:8px 13px}
+  .mcp-header{padding:10px 13px}
+  .chat-intro-note{padding:7px 13px}
+  .mcp-messages{flex:1 1 0;min-height:0;padding:12px 13px;overscroll-behavior:contain}
+  .chat-composer{flex:0 0 auto;padding:10px 12px}
+  .prompt-starters{gap:5px;margin-bottom:8px}
+  .composer-form textarea{min-height:40px}
+  .composer-disclaimer{margin-top:7px}
+  .sidebar-content{padding:14px 9px 10px}
+  .nav-label{padding-bottom:7px}
+  .nav-label-spaced{margin-top:12px}
+  .sidebar-info{padding:6px 7px;margin:2px 3px}
+  .workflow-library{margin-top:12px;padding-top:13px}
+  .sidebar-operator{padding:9px 11px}
+}
+/* Narrow and stacked layouts retain natural page scrolling for accessibility. */
+@media (max-width:1050px){
+  html,body{height:auto;overflow:auto}
+  .designer-shell{height:auto;min-height:100dvh;overflow:visible}
+  .studio-main{height:auto;overflow:visible}
+  .studio-sidebar{position:relative;top:auto;height:auto;overflow:visible}
+  .sidebar-content{overflow:visible}
+  .studio-grid{overflow:visible}
+  .workflow-canvas{overflow-y:auto}
+  .studio-intro{padding-top:19px;padding-bottom:16px}
 }

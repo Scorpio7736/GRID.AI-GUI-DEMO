@@ -36,12 +36,6 @@
         <p class="workflow-library-footnote">Stored only in this browser. No GRID.AI backend connection.</p>
       </section>
 
-      <div class="sidebar-promo">
-        <span class="promo-kicker">GRID.AI / PREVIEW 01</span>
-        <div class="promo-symbol" aria-hidden="true">⌘</div>
-        <strong>Orchestrate better.</strong>
-        <p>Describe an idea. Structure the agents, triggers, and approval gates before anything runs.</p>
-      </div>
     </div>
     <div class="sidebar-operator">
       <div class="operator-avatar">MC</div>
@@ -112,6 +106,19 @@
             </label>
             <label class="editor-field field-wide">Step instructions <textarea id="editStepDescription" rows="2" maxlength="240"></textarea></label>
           </div>
+          <section class="step-skill-section" aria-labelledby="stepSkillLabel">
+            <div class="skill-title-row">
+              <div><div class="tiny-label" id="stepSkillLabel">CUSTOM STEP SKILL</div><p>Attach instructions for this step only · .txt or .md</p></div>
+              <label class="small-button skill-upload-button" for="skillUpload">⇧ Upload skill</label>
+              <input class="sr-only" type="file" id="skillUpload" accept=".txt,.md,text/plain,text/markdown" aria-label="Upload a text or Markdown skill file for the selected step">
+            </div>
+            <div class="skill-file-row">
+              <span id="skillFileStatus" class="skill-file-status" role="status">No skill attached</span>
+              <button id="removeSkill" class="skill-remove" type="button" hidden>Remove</button>
+            </div>
+            <details id="skillPreview" class="skill-preview" hidden><summary>Preview skill instructions</summary><pre id="skillPreviewText"></pre></details>
+            <p class="skill-note">Maximum 64 KB · stored in this browser with the saved blueprint · never executed</p>
+          </section>
           <div class="editor-actions"><div class="step-move-buttons"><button class="small-button" id="moveStepUp" type="button">↑ Move up</button><button class="small-button" id="moveStepDown" type="button">↓ Move down</button></div><button class="danger-link" id="removeStep" type="button">Remove step</button></div>
         </section>
         <div class="canvas-footer"><span><span class="footer-square" aria-hidden="true"></span> Blueprint only · No agents or automations are executed</span><span id="footerVersion">v0.0</span></div>
