@@ -7,6 +7,7 @@
 
 <link rel="stylesheet" href="./styles/chat.css">
 <link rel="stylesheet" href="./styles/agent-ui.css">
+<link rel="stylesheet" href="./styles/workspace-ui.css">
 </head>
 
 <body>
@@ -14,7 +15,7 @@
 
   <aside class="sidebar" aria-label="Conversation navigation">
 
-    <div class="brand">
+    <a class="brand brand-home-link" href="./index.html" aria-label="GRID.AI home" title="Return to GRID.AI home">
       <svg class="brand-symbol" viewBox="0 0 48 48"
            fill="none" aria-hidden="true">
         <circle cx="24" cy="24" r="19"
@@ -34,7 +35,7 @@
         <div class="brand-name">GRID<span>.AI</span></div>
         <div class="brand-sub">CONNECT</div>
       </div>
-    </div>
+    </a>
 
     <div class="sidebar-actions">
       <button class="primary-button" id="newChatButton">
@@ -54,6 +55,7 @@
       <div class="section-heading">
         Conversations <small id="chatCount"></small>
       </div>
+      <div class="reorder-hint"><span aria-hidden="true">⠿</span> Drag a handle to reorder conversations</div>
       <div id="chatList"></div>
 
       <div class="section-heading">Available agents</div>
@@ -70,6 +72,11 @@
       </div>
     </div>
   </aside>
+
+  <div class="pane-resizer sidebar-resizer" id="sidebarResizer" role="separator"
+       tabindex="0" aria-orientation="vertical" aria-label="Resize conversations panel"
+       aria-valuemin="210" aria-valuemax="430" aria-valuenow="275"
+       title="Drag to resize conversations · Arrow keys adjust width"></div>
 
   <main class="main">
     <header class="topbar">
@@ -100,9 +107,6 @@
         </button>
         <button class="icon-button inspector-toggle" id="inspectorButton"
                 aria-label="Expand session details" title="Toggle session details">←</button>
-        <a class="home-button" href="./index.html" aria-label="Grid.AI home" title="Back to home">
-          GRID<span>.AI</span>
-        </a>
       </div>
     </header>
 
@@ -136,6 +140,11 @@
       </div>
     </footer>
   </main>
+
+  <div class="pane-resizer inspector-resizer" id="inspectorResizer" role="separator"
+       tabindex="0" aria-orientation="vertical" aria-label="Resize session details"
+       aria-valuemin="235" aria-valuemax="460" aria-valuenow="290"
+       title="Drag to resize session details · Arrow keys adjust width"></div>
 
   <aside class="inspector" id="inspector">
     <div class="inspector-title">
@@ -252,5 +261,6 @@
 
 <script src="./scripts/chat.js"></script>
 <script src="./scripts/agent-ui.js"></script>
+<script src="./scripts/workspace-ui.js"></script>
 </body>
 </html>
