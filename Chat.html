@@ -137,7 +137,26 @@
               Animations ON
             </button>
           </div>
-          <button class="send-button" id="sendButton">Send ↗</button>
+          <div class="composer-actions">
+            <div class="continue-control" id="continueControl">
+              <button class="continue-button" id="continueConversationButton" type="button"
+                      aria-haspopup="menu" aria-expanded="false"
+                      aria-controls="continueConversationMenu" disabled>
+                Continue conversation <span aria-hidden="true">▴</span>
+              </button>
+              <div class="continue-menu hidden" id="continueConversationMenu"
+                   role="menu" aria-label="Continue conversation using">
+                <div class="continue-menu-heading">CONTINUE ON</div>
+                <button class="continue-option" type="button" role="menuitem"
+                        data-continue-target="glasses">Even G2 Glasses</button>
+                <button class="continue-option" type="button" role="menuitem"
+                        data-continue-target="call">Phone Call</button>
+                <button class="continue-option" type="button" role="menuitem"
+                        data-continue-target="other">Other</button>
+              </div>
+            </div>
+            <button class="send-button" id="sendButton">Send ↗</button>
+          </div>
         </div>
       </div>
       <div class="composer-caption">

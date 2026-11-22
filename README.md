@@ -89,3 +89,7 @@ The Connect GUI demo now defaults to **Animations ON**, with a separate toggle a
 - Agent portraits and names remain visible, and the existing reply typewriter starts after the bubble disappears.
 - Pending indicators exist only in page memory, never enter the transcript, and are excluded from TXT/Markdown exports. They are recreated when returning to a conversation with an outstanding response.
 - The **Animations ON/OFF** control can stop the dot bounce without removing the simulated wait.
+
+## Continue conversation selector
+
+The chat composer has a **Continue conversation** dropdown next to **Send**, enabled when a conversation is active. Its three choices are **Even G2 Glasses**, **Phone Call**, and **Other**. This is a UI-only handoff preview: clicking an option displays a toast indicating the destination, without initiating a device connection or telephone call. The menu supports arrow-key navigation, Escape to close, and closes on outside click or when switching conversations.

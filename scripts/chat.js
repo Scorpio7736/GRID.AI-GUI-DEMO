@@ -538,6 +538,8 @@ function render() {
 
   $("messageInput").disabled = !chat;
   $("sendButton").disabled = !chat;
+  $("continueConversationButton").disabled = !chat;
+  closeContinueMenu();
 
   $("typewriterToggle").textContent =
     state.typewriter ? "Typewriter ON" : "Typewriter OFF";
@@ -1336,6 +1338,66 @@ $("newMeetingRight").addEventListener("click", () => {
 $("inviteButton").addEventListener("click", () => {
   const chat = currentChat();
   if (chat) openModal("invite", chat.id);
+});
+
+/* Continue conversation — demo handoff menu (no device/telephony backend). */
+const CONTINUE_DESTINATIONS = Object.freeze({
+  glasses: "Even G2 Glasses",
+  call: "Phone Call",
+  other: "Other"
+});
+
+function closeContinueMenu(restoreFocus = false) {
+  const menu = $("continueConversationMenu");
+  const trigger = $("continueConversationButton");
+  const wasOpen = !menu.classList.contains("hidden");
+  menu.classList.add("hidden");
+  trigger.setAttribute("aria-expanded", "false");
+  if (wasOpen && restoreFocus) trigger.focus();
+}
+
+function openContinueMenu() {
+  const trigger = $("continueConversationButton");
+  if (trigger.disabled || !currentChat()) return;
+  $("continueConversationMenu").classList.remove("hidden");
+  trigger.setAttribute("aria-expanded", "true");
+  $("continueConversationMenu").querySelector("[role=menuitem]")?.focus();
+}
+
+$("continueConversationButton").addEventListener("click", () => {
+  const menu = $("continueConversationMenu");
+  if (menu.classList.contains("hidden")) openContinueMenu();
+  else closeContinueMenu();
+});
+
+$("continueConversationMenu").addEventListener("click", event => {
+  const option = event.target.closest("[data-continue-target]");
+  if (!option) return;
+  const target = CONTINUE_DESTINATIONS[option.dataset.continueTarget];
+  if (!target || !currentChat()) return;
+  closeContinueMenu(true);
+  showToast(target + " — handoff preview only; no connection started.");
+});
+
+$("continueConversationMenu").addEventListener("keydown", event => {
+  const options = Array.from($("continueConversationMenu").querySelectorAll("[role=menuitem]"));
+  const index = options.indexOf(document.activeElement);
+  if (event.key === "Escape") {
+    event.preventDefault();
+    event.stopPropagation();
+    closeContinueMenu(true);
+  } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    event.preventDefault();
+    const step = event.key === "ArrowDown" ? 1 : -1;
+    options[(index + step + options.length) % options.length]?.focus();
+  } else if (event.key === "Home" || event.key === "End") {
+    event.preventDefault();
+    options[event.key === "Home" ? 0 : options.length - 1]?.focus();
+  }
+});
+
+document.addEventListener("click", event => {
+  if (!event.target.closest("#continueControl")) closeContinueMenu();
 });
 
 $("sendButton").addEventListener("click", sendMessage);
