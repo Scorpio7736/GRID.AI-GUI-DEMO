@@ -5,7 +5,7 @@
   Standalone browser-only prototype.
 
   No model, repository, OS, or network integration.
-  Browser localStorage is the only demo persistence.
+  All demo state lives in memory and is reset when the page refreshes.
 */
 
 const TYPEWRITER_MS_PER_CHAR = 18;
