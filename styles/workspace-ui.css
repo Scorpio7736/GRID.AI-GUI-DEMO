@@ -1,0 +1,232 @@
+/* GRID.AI Connect workspace refinements: no persistent layout state. */
+:root {
+  --sidebar-width: 275px;
+  --inspector-width: 290px;
+}
+
+.app {
+  position: relative;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr) var(--inspector-width);
+  transition: grid-template-columns 270ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.app.is-resizing {
+  transition: none !important;
+  user-select: none;
+  cursor: col-resize;
+}
+
+.brand-home-link {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+.brand-home-link:hover {
+  background: #191c20;
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+.brand-home-link:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -3px;
+}
+.brand-home-link:hover .brand-name {
+  color: #fffdf3;
+}
+
+.sidebar,
+.inspector {
+  min-width: 0;
+}
+
+.pane-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  z-index: 55;
+  touch-action: none;
+  cursor: col-resize;
+  outline-offset: -2px;
+}
+.pane-resizer::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 5px;
+  width: 2px;
+  background: transparent;
+  transition: background 160ms ease, width 160ms ease;
+}
+.pane-resizer:hover::after,
+.pane-resizer:focus-visible::after,
+.app.is-resizing .pane-resizer.active::after {
+  width: 3px;
+  background: #b99a54;
+}
+.sidebar-resizer { left: calc(var(--sidebar-width) - 6px); }
+.inspector-resizer { right: calc(var(--inspector-width) - 6px); }
+
+.inspector {
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity 210ms ease,
+    transform 270ms cubic-bezier(.22, 1, .36, 1),
+    visibility 0s;
+}
+
+/* A collapsed desktop panel is still in the grid, so both the panel
+   and the main area can animate without display:none snapping. */
+@media (min-width: 1151px) {
+  .app.inspector-collapsed {
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr) 0px;
+  }
+  .app.inspector-collapsed .inspector {
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(30px);
+    transition:
+      opacity 210ms ease,
+      transform 270ms cubic-bezier(.22, 1, .36, 1),
+      visibility 0s linear 270ms;
+  }
+  .app.inspector-collapsed .inspector-resizer { display: none; }
+  .app.inspector-collapsed .inspector-toggle { display: inline-grid; }
+}
+
+.reorder-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px 11px;
+  color: #8895a1;
+  font: 10px var(--mono);
+}
+.reorder-hint span { color: var(--gold-dim); font-size: 16px; line-height: 1; }
+
+.chat-entry {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+.chat-drag-handle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 25px;
+  width: 25px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #70808b;
+  cursor: grab;
+  font-size: 17px;
+  line-height: 1;
+  touch-action: none;
+}
+.chat-drag-handle:hover,
+.chat-drag-handle:focus-visible {
+  color: var(--gold);
+  border-color: #5f4d2c;
+  border-radius: 6px;
+}
+.chat-drag-handle:active { cursor: grabbing; }
+.chat-entry.is-dragging {
+  opacity: .38;
+}
+.chat-entry.drop-before { box-shadow: 0 -3px 0 var(--gold); }
+.chat-entry.drop-after { box-shadow: 0 3px 0 var(--gold); }
+.app.dragging-chat .chat-hover-details {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transform: translateY(-8px) !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  pointer-events: none !important;
+}
+.chat-top { gap: 0; }
+.chat-select { padding-left: 1px; }
+
+/* Animate the contextual summary in both directions.
+   Keyboard focus exposes the same details as pointer hover. */
+.chat-hover-details {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-7px);
+  overflow: hidden;
+  pointer-events: none;
+  visibility: hidden;
+  padding-top: 0;
+  padding-bottom: 0;
+  transition:
+    max-height 320ms cubic-bezier(.22, 1, .36, 1),
+    opacity 240ms ease,
+    transform 280ms ease,
+    padding 280ms ease,
+    border-color 280ms ease,
+    visibility 0s linear 320ms;
+}
+.chat-entry:hover .chat-hover-details,
+.chat-entry:focus-within .chat-hover-details {
+  max-height: 480px;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition:
+    max-height 320ms cubic-bezier(.22, 1, .36, 1),
+    opacity 240ms ease,
+    transform 280ms ease,
+    padding 280ms ease,
+    border-color 280ms ease,
+    visibility 0s;
+}
+
+/* The inspector becomes an off-canvas sliding pane on smaller windows. */
+@media (max-width: 1150px) {
+  .app { grid-template-columns: var(--sidebar-width) minmax(0, 1fr); }
+  .inspector-resizer { display: none; }
+  .app .inspector {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(370px, 90vw);
+    min-width: 0;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(105%);
+    transition:
+      transform 290ms cubic-bezier(.22, 1, .36, 1),
+      opacity 240ms ease,
+      visibility 0s linear 290ms;
+  }
+  .app.show-inspector .inspector {
+    display: block;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+    transition:
+      transform 290ms cubic-bezier(.22, 1, .36, 1),
+      opacity 240ms ease,
+      visibility 0s;
+  }
+}
+@media (max-width: 700px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .sidebar-resizer { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app, .inspector, .chat-entry, .chat-hover-details,
+  .pane-resizer::after, .brand-home-link {
+    transition-duration: 0.01ms !important;
+  }
+}
