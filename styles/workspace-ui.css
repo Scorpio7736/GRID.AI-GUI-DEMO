@@ -241,3 +241,104 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ========================================================================
+   Visible panel travel and conversation switching
+   The desktop inspector is an independently sized panel moving over the
+   reserved grid track. This prevents zero-width content compression from
+   masquerading as a slide animation.
+   ======================================================================== */
+@media (min-width: 1151px) {
+  .app .inspector {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: var(--inspector-width);
+    height: 100%;
+    z-index: 45;
+    min-width: 0;
+    display: block;
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+    transition:
+      transform 350ms cubic-bezier(.22, 1, .36, 1),
+      opacity 250ms ease,
+      visibility 0s;
+  }
+
+  .app.inspector-collapsed .inspector {
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(calc(100% + 16px));
+    transition:
+      transform 350ms cubic-bezier(.22, 1, .36, 1),
+      opacity 250ms ease,
+      visibility 0s linear 350ms;
+  }
+}
+
+/* The left navigation and the right inspector both slide on small screens. */
+@media (max-width: 700px) {
+  .app .sidebar {
+    display: flex;
+    z-index: 65;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(calc(-100% - 12px));
+    transition:
+      transform 310ms cubic-bezier(.22, 1, .36, 1),
+      opacity 220ms ease,
+      visibility 0s linear 310ms;
+  }
+  .app.show-sidebar .sidebar {
+    display: flex;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+    transition:
+      transform 310ms cubic-bezier(.22, 1, .36, 1),
+      opacity 220ms ease,
+      visibility 0s;
+  }
+}
+
+/* Fade the conversation workspace on thread changes, including header,
+   messages, composer and session metadata. No fade on regular message sends. */
+.app .main {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 210ms ease,
+    transform 210ms cubic-bezier(.22, 1, .36, 1);
+}
+.app .main.chat-switch-out {
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition:
+    opacity 165ms ease-in,
+    transform 165ms ease-in;
+}
+.app .inspector > :not(.inspector-title) {
+  transition: opacity 210ms ease, transform 210ms ease;
+}
+.app.chat-switch-out .inspector > :not(.inspector-title) {
+  opacity: 0;
+  transform: translateY(4px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .app .main,
+  .app .main.chat-switch-out,
+  .app .inspector > :not(.inspector-title),
+  .app .sidebar,
+  .app .inspector {
+    transition-duration: 0.01ms !important;
+  }
+}

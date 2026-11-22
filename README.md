@@ -59,3 +59,8 @@ Open `index.html` or `Chat.html` in a browser to view the demos. No build tools 
 - **Hover summaries:** The conversation summary smoothly expands on hover or keyboard focus and collapses when the cursor/focus leaves.
 - **Agent introductions:** Ask an agent "Who are you?" or "What do you do?" for a hardcoded role-specific introduction. These are scripted demo responses, not live AI.
 - **Temporary changes:** Panel widths and conversation ordering are in memory only; a refresh resets them.
+
+## Interface transitions
+
+- **Session details:** On desktop, the right panel visibly travels offscreen when collapsed and slides back in when expanded, while the central workspace resizes smoothly. On smaller screens, both side panels slide in from their edges.
+- **Conversation switching:** Selecting another conversation fades the active workspace out, swaps the thread while hidden, and fades the new conversation in. Quick consecutive selections use the latest requested chat. Reduced-motion users get immediate switching.

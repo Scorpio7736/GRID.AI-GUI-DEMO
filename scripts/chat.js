@@ -530,18 +530,67 @@ function render() {
   renderInspector();
 }
 
-function selectChat(id) {
-  finishTypewriter();
+// A single switch controller lets rapid consecutive clicks select the latest chat.
+// Nothing is persisted; the animation only runs when selecting a different thread.
+let chatSwitchSequence = 0;
+let chatSwitchTimer = null;
+let chatFadeCleanup = null;
 
+function selectChat(id) {
   if (!findChat(id)) return;
 
-  state.currentId = id;
-  state.openMenuId = null;
+  const app = $("app");
+  const main = document.querySelector(".main");
+  const seq = ++chatSwitchSequence;
 
-  $("app").classList.remove("show-sidebar", "show-inspector");
+  if (chatSwitchTimer !== null) clearTimeout(chatSwitchTimer);
+  if (chatFadeCleanup !== null) clearTimeout(chatFadeCleanup);
+  chatSwitchTimer = null;
+  chatFadeCleanup = null;
 
-  saveState();
-  render();
+  // The new selection can arrive while a previous fade is still running.
+  // Restoring opacity first allows each transition to start from a known state.
+  if (id === state.currentId || reducedMotion.matches || !main) {
+    main?.classList.remove("chat-switch-out");
+    app.classList.remove("chat-switch-out");
+    state.currentId = id;
+    state.openMenuId = null;
+    app.classList.remove("show-sidebar", "show-inspector");
+    saveState();
+    render();
+    syncInspectorControls();
+    return;
+  }
+
+  finishTypewriter();
+  main.classList.add("chat-switch-out");
+  app.classList.add("chat-switch-out");
+
+  chatSwitchTimer = setTimeout(() => {
+    if (seq !== chatSwitchSequence || !findChat(id)) return;
+    chatSwitchTimer = null;
+
+    state.currentId = id;
+    state.openMenuId = null;
+    app.classList.remove("show-sidebar", "show-inspector");
+    saveState();
+
+    // Rebuild the selected thread and its participants while content is faded.
+    render();
+    syncInspectorControls();
+
+    // Commit the hidden state before triggering the reverse transition.
+    void main.offsetWidth;
+    main.classList.remove("chat-switch-out");
+    app.classList.remove("chat-switch-out");
+
+    chatFadeCleanup = setTimeout(() => {
+      if (seq !== chatSwitchSequence) return;
+      chatFadeCleanup = null;
+      main.classList.remove("chat-switch-out");
+      app.classList.remove("chat-switch-out");
+    }, 240);
+  }, 165);
 }
 
 /* CONVERSATION CREATION */
