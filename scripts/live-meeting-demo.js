@@ -16,6 +16,7 @@
   const camera = get("liveVideoToggle");
   const cameraLabel = get("liveVideoLabel");
   const chatToggle = get("liveChatToggle");
+  const addAgent = get("liveAddAgent");
   const leave = get("liveLeaveButton");
   const activity = get("liveSpeakingStatus");
   const main = document.querySelector(".main");
@@ -26,7 +27,7 @@
   const bottomContinueMenu = get("liveContinueMenu");
   if (!stage || !grid || !title || !count || !toggle || !inspectorHelp ||
       !mic || !micLabel || !camera || !cameraLabel || !chatToggle ||
-      !leave || !activity || !main || !workspace || !chatSide ||
+      !addAgent || !leave || !activity || !main || !workspace || !chatSide ||
       !bottomContinue || !bottomContinueButton || !bottomContinueMenu) return;
 
   let stageSignature = null;
@@ -193,6 +194,10 @@
 
     title.textContent = chat.title;
     count.textContent = (chat.participants.length + 1) + " participants · demo";
+    addAgent.disabled = chat.participants.length >= 6 || modeExitTimer !== null;
+    addAgent.title = addAgent.disabled
+      ? "This meeting already has the maximum of six agents"
+      : "Invite an agent into this same Live Meeting";
     chatToggle.textContent = chat.liveChatVisible === false ? "Show chat" : "Hide chat";
     chatToggle.setAttribute("aria-pressed", String(chat.liveChatVisible !== false));
     chatToggle.setAttribute("aria-expanded", String(chat.liveChatVisible !== false));
@@ -275,6 +280,11 @@
 
   toggle.addEventListener("click", () => changeMeetingMode(!currentChat()?.liveMeeting));
   leave.addEventListener("click", () => changeMeetingMode(false));
+  addAgent.addEventListener("click", () => {
+    const chat = currentChat();
+    if (!chat?.liveMeeting || chat.participants.length >= 6) return;
+    openModal("invite", chat.id);
+  });
   chatToggle.addEventListener("click", () => {
     const chat = currentChat();
     if (!chat?.liveMeeting) return;

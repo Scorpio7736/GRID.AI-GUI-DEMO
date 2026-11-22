@@ -367,3 +367,15 @@
 .app.motion-disabled .main.live-meeting-mode.live-chat-transitioning .connect-chat-side {
   transition: none !important;
 }
+
+/* Invite agents directly into the existing Live Meeting session. */
+.live-add-agent-button {
+  border-color: #665532;
+  color: var(--gold);
+  background: #282419;
+}
+.live-add-agent-button:hover:not(:disabled) {
+  border-color: #ae914c;
+  background: #3a3020;
+}
+

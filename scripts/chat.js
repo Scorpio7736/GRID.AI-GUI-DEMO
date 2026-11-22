@@ -544,7 +544,8 @@ function renderInspector() {
       : "This conversation is scoped to its selected agent. Inviting specialists creates a fresh shared meeting without importing earlier private messages.";
 
   $("inviteButton").disabled = !chat ||
-    !chat.participants.includes("MCP");
+    (chat.type === "meeting" && chat.participants.length >= 6) ||
+    (!chat.liveMeeting && !chat.participants.includes("MCP"));
 
   $("demoApprovalButton").disabled = !chat;
 }
@@ -968,9 +969,12 @@ function openModal(type, chatId = null, preferredAgent = "MCP") {
   }
 
   if (type === "invite" && chat) {
-    title = "Invite agents";
-    description = "Choose additional participants. A new shared conversation will be created without copying private history.";
-    button = "Create shared meeting";
+    const joiningLive = chat.liveMeeting === true;
+    title = joiningLive ? "Add agents to Live Meeting" : "Invite agents";
+    description = joiningLive
+      ? "Selected agents join this same meeting. The existing transcript stays here for you. Earlier conversation messages are not provided to newly joined agents as context in this demo."
+      : "Choose additional participants. A new shared conversation will be created without copying private history.";
+    button = joiningLive ? "Add to Live Meeting" : "Create shared meeting";
 
     body = ORDER.map(name => {
       const alreadyIncluded = chat.participants.includes(name);
@@ -1090,9 +1094,13 @@ function confirmModal() {
   if (type === "invite") {
     if (!chat) return;
 
+    // Already-present agents are checked and disabled in the modal. Only
+    // newly selected, enabled entries count toward this invitation.
     const added = [...document.querySelectorAll(
-      'input[name="inviteAgent"]:checked'
-    )].map(input => input.value);
+      'input[name="inviteAgent"]:checked:not(:disabled)'
+    )].map(input => input.value).filter(name =>
+      AGENTS[name] && !chat.participants.includes(name)
+    );
 
     if (!added.length) {
       modalError("Select at least one new participant.");
@@ -1105,6 +1113,47 @@ function confirmModal() {
 
     if (combined.length < 2 || combined.length > 6) {
       modalError("A meeting must have between 2 and 6 agents.");
+      return;
+    }
+
+    if (chat.liveMeeting === true) {
+      // A live invitation modifies this exact conversation: no second chat,
+      // lost transcript, or new session identity. Prior one-to-one or shared
+      // messages stay visible to the operator, but do not become context
+      // provided to the newly joining demo agents.
+      const originallyPrivate = chat.type === "private";
+      const previousParticipants = [...chat.participants];
+      if (originallyPrivate) {
+        chat.livePrivateHistoryBoundary = chat.messages.length;
+      }
+      chat.participants = combined;
+      chat.type = "meeting";
+      if (originallyPrivate || chat.title.startsWith("Agent meeting ·")) {
+        chat.title = `Agent meeting · ${combined.join(", ")}`;
+      }
+      chat.messages.push(makeMessage(null,
+        `Live Meeting · ${added.join(", ")} joined · New shared segment (demo)`,
+        { kind: "divider" }
+      ));
+      chat.messages.push(makeMessage(null,
+        originallyPrivate
+          ? "Earlier private messages remain in your local transcript, but are not supplied to newly joined demo agents as conversation context."
+          : "Earlier shared messages remain in your transcript; newly joined demo agents start with the new shared segment.",
+        { kind: "notice" }
+      ));
+      for (const agent of added) {
+        chat.messages.push(makeMessage(agent,
+          `I've joined this Live Meeting. You can message me using @${agent}. This is a visual demo; no actual agent call was connected.`,
+          { demo: true }
+        ));
+      }
+      touchChat(chat);
+      closeModal();
+      saveState();
+      render();
+      // Highlight the last joining agent on the existing Live Meeting stage.
+      renderMessages(chat.messages[chat.messages.length - 1].id);
+      showToast(`${added.join(", ")} joined this Live Meeting (demo).`);
       return;
     }
 
