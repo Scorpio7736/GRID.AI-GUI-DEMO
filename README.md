@@ -79,5 +79,5 @@ The Connect GUI demo now defaults to **Animations ON**, with a separate toggle a
 
 ## Conversation fade refinements
 
-- Conversation switching fades only the dynamic content: conversation title, subtitle, participant portraits, message area, and the current session's changing detail fields. The topbar container, its action buttons, and message composer remain visible and stationary.
+- Conversation switching animates the complete top-left heading (title, status dot, subtitle, separator, and UI DEMO) together: it fades/slides left, then the new heading fades/slides in from the left. The topbar container, its buttons, and the composer remain stationary; participant portraits and messages keep their own localized fades.
 - The conversation area fades into place on initial page load, alongside the staggered sidebar reveal. Because demo history resets on refresh, the first newly created private conversation or agent meeting also receives a one-time entrance fade. Subsequent messages do not retrigger it.

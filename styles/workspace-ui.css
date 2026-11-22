@@ -311,11 +311,28 @@
   }
 }
 
-/* Only the content that actually changes between chats fades.
-   The topbar itself, its actions, the composer, and surrounding layout
-   remain stationary, so changing chats never blanks the whole workspace. */
-.app #conversationTitle,
-.app #conversationSubtitle,
+/* The complete top-left conversation heading moves as ONE unit:
+   title + status dot + subtitle + separator + UI DEMO.
+   On selection it fades left; after swapping content while hidden, it fades
+   IN FROM THE LEFT by transitioning back to the resting position. */
+.app #conversationHeading {
+  min-width: 0;
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity 240ms ease-out,
+    transform 240ms cubic-bezier(.22, 1, .36, 1);
+}
+.app.chat-switch-out #conversationHeading {
+  opacity: 0;
+  transform: translateX(-20px);
+  transition:
+    opacity 165ms ease-in,
+    transform 165ms ease-in;
+}
+
+/* Leave the topbar shell/actions stationary. Participants and messages
+   retain their existing localized vertical fade, not the entire header. */
 .app #headerParticipants,
 .app #messages {
   opacity: 1;
@@ -324,8 +341,6 @@
     opacity 210ms ease,
     transform 210ms cubic-bezier(.22, 1, .36, 1);
 }
-.app.chat-switch-out #conversationTitle,
-.app.chat-switch-out #conversationSubtitle,
 .app.chat-switch-out #headerParticipants,
 .app.chat-switch-out #messages {
   opacity: 0;
@@ -343,8 +358,7 @@
   opacity: 0;
   transform: translateY(4px);
 }
-.app.motion-disabled #conversationTitle,
-.app.motion-disabled #conversationSubtitle,
+.app.motion-disabled #conversationHeading,
 .app.motion-disabled #headerParticipants,
 .app.motion-disabled #messages,
 .app.motion-disabled .inspector > :not(.inspector-title),
