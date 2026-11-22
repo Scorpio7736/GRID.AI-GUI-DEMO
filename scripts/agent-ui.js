@@ -310,9 +310,12 @@ render = function () {
   agentUiRenderParticipants();
 };
 
-function agentUiRemoveFromMeeting(agent) {
-  const chat = currentChat();
-  if (!chat || chat.type !== "meeting" || !chat.participants.includes(agent)) return false;
+function agentUiRemoveFromMeeting(agent, chatId = currentChat()?.id) {
+  // A departure animation may finish after the operator has selected
+  // another conversation; apply the action to its original meeting.
+  const chat = findChat(chatId);
+  if (!chat || chat.type !== "meeting" ||
+      !chat.participants.includes(agent) || chat.participants.length < 2) return false;
 
   chat.participants = chat.participants.filter(participant => participant !== agent);
   if (chat.participants.length === 1) {
@@ -329,26 +332,44 @@ function agentUiRemoveFromMeeting(agent) {
     { kind: "notice" }
   ));
   touchChat(chat);
-  selectedParticipant = null;
+  if (state.currentId === chatId) selectedParticipant = null;
   saveState();
-  render();
+  if (state.currentId === chatId) render();
+  else renderChatList();
   return true;
 }
 
-function agentUiParticipantAction(action) {
-  const agent = selectedParticipant;
+// Both the top participant menu and the Live Meeting tile menu use this
+// exact action handler. Removal/move is animated before it changes the model.
+function agentUiParticipantAction(action, chosenAgent = selectedParticipant) {
+  const agent = chosenAgent;
   const chat = currentChat();
-  if (!agent || !chat || chat.type !== "meeting") return;
+  if (!agent || !chat || chat.type !== "meeting" ||
+      !chat.participants.includes(agent)) return false;
 
-  if (action === "remove") {
-    if (agentUiRemoveFromMeeting(agent)) showToast(`${agent} removed from meeting.`);
-  } else if (action === "whisper") {
+  if (action === "whisper") {
     selectedParticipant = null;
     agentUiRenderParticipants();
     agentUiOpenWhisper(agent);
-  } else if (action === "move") {
-    const sourceTitle = chat.title;
-    if (!agentUiRemoveFromMeeting(agent)) return;
+    return true;
+  }
+  if (action !== "remove" && action !== "move") return false;
+  if (chat.participants.length < 2) {
+    showToast("The last agent cannot be removed from a meeting.");
+    return false;
+  }
+
+  const chatId = chat.id;
+  const sourceTitle = chat.title;
+  const completeDeparture = () => {
+    if (!agentUiRemoveFromMeeting(agent, chatId)) return;
+    if (action === "remove") {
+      showToast(`${agent} removed from meeting.`);
+      return;
+    }
+
+    // Moving is an explicit action that creates a fresh private chat.
+    // Original shared history remains in the original meeting only.
     createPrivateConversation(agent);
     const newChat = currentChat();
     newChat.messages.unshift(makeMessage(null,
@@ -358,7 +379,16 @@ function agentUiParticipantAction(action) {
     saveState();
     render();
     showToast(`${agent} moved to a new private chat.`);
+  };
+
+  selectedParticipant = null;
+  agentUiRenderParticipants();
+  if (chat.liveMeeting && typeof window.demoAnimateLiveRemoval === "function" &&
+      window.demoAnimateLiveRemoval(chatId, agent, completeDeparture)) {
+    return true;
   }
+  completeDeparture();
+  return true;
 }
 
 // Whispers persist inside the owning meeting but are NOT part of chat.messages.

@@ -12,6 +12,118 @@
   const MIN_SIZE = 132;
   const MAX_SIZE = 330;
   let dragging = null;
+  let openMenuAgent = null;
+  let openMenuChatId = null;
+  const pendingDepartures = new Map();
+  const DEPARTURE_MS = 420;
+
+  function findAgentTile(agent) {
+    return [...grid.querySelectorAll("[data-live-agent]")]
+      .find(tile => tile.dataset.liveAgent === agent) || null;
+  }
+
+  function closeAgentMenu(restoreFocus = false) {
+    if (!openMenuAgent) return;
+    const agent = openMenuAgent;
+    const tile = findAgentTile(agent);
+    const trigger = tile?.querySelector(".live-cell-more");
+    const menu = tile?.querySelector(".live-cell-menu");
+    if (menu) menu.hidden = true;
+    if (trigger) trigger.setAttribute("aria-expanded", "false");
+    tile?.classList.remove("live-cell-menu-open");
+    openMenuAgent = null;
+    openMenuChatId = null;
+    if (restoreFocus && trigger) trigger.focus();
+  }
+
+  function toggleAgentMenu(agent) {
+    const chat = currentChat();
+    if (!chat?.liveMeeting || chat.type !== "meeting" ||
+        !chat.participants.includes(agent)) return;
+    if (openMenuAgent === agent && openMenuChatId === chat.id) {
+      closeAgentMenu(true);
+      return;
+    }
+    closeAgentMenu();
+    const tile = findAgentTile(agent);
+    const trigger = tile?.querySelector(".live-cell-more");
+    const menu = tile?.querySelector(".live-cell-menu");
+    if (!trigger || !menu) return;
+    menu.hidden = false;
+    trigger.setAttribute("aria-expanded", "true");
+    tile.classList.add("live-cell-menu-open");
+    openMenuAgent = agent;
+    openMenuChatId = chat.id;
+    menu.querySelector("button")?.focus();
+  }
+
+  function addAgentMenu(tile, agent) {
+    if (tile.querySelector(".live-cell-more")) return;
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "live-cell-more";
+    trigger.textContent = "⋯";
+    trigger.dataset.liveMore = agent;
+    trigger.title = "Participant options for " + agent;
+    trigger.setAttribute("aria-label", "Options for " + agent);
+    trigger.setAttribute("aria-haspopup", "menu");
+    trigger.setAttribute("aria-expanded", "false");
+
+    const menu = document.createElement("div");
+    menu.className = "live-cell-menu";
+    menu.hidden = true;
+    menu.setAttribute("role", "menu");
+    menu.setAttribute("aria-label", agent + " participant actions");
+
+    const options = [
+      ["remove", "Remove from meeting"],
+      ["whisper", "Whisper to " + agent],
+      ["move", "Move to new chat"]
+    ];
+    for (const [action, label] of options) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      button.className = "live-cell-menu-action" +
+        (action === "remove" ? " danger" : "");
+      button.dataset.liveMenuAction = action;
+      button.dataset.liveMenuAgent = agent;
+      button.setAttribute("role", "menuitem");
+      menu.appendChild(button);
+    }
+    tile.append(trigger, menu);
+  }
+
+  // The same participant state/action path is used by the header and tile
+  // menus. No duplicate removal implementation or extra meeting is created.
+  window.demoAnimateLiveRemoval = (chatId, agent, complete) => {
+    const chat = currentChat();
+    if (!chat?.liveMeeting || chat.id !== chatId ||
+        !chat.participants.includes(agent) || !state.motionEnabled) return false;
+    const key = chatId + ":" + agent;
+    if (pendingDepartures.has(key)) return true;
+    const tile = findAgentTile(agent);
+    if (!tile) return false;
+    closeAgentMenu();
+    tile.classList.remove("is-joining");
+    tile.classList.add("is-leaving");
+    tile.draggable = false;
+    const timer = setTimeout(() => {
+      pendingDepartures.delete(key);
+      complete();
+    }, DEPARTURE_MS);
+    pendingDepartures.set(key, {timer, complete});
+    return true;
+  };
+
+  function finishPendingDepartures() {
+    const departures = [...pendingDepartures.values()];
+    pendingDepartures.clear();
+    for (const departure of departures) {
+      clearTimeout(departure.timer);
+      departure.complete();
+    }
+  }
 
   function keysFor(chat) {
     if (!chat) return [];
@@ -40,7 +152,17 @@
     grid.querySelectorAll(".live-participant-tile").forEach(tile => {
       const key = tile.dataset.liveAgent || YOU;
       tile.dataset.liveTile = key;
-      tile.draggable = true;
+      tile.draggable = !tile.classList.contains("is-leaving");
+      if (key !== YOU) {
+        addAgentMenu(tile, key);
+        const trigger = tile.querySelector(".live-cell-more");
+        if (trigger) {
+          trigger.disabled = currentChat()?.type !== "meeting";
+          trigger.title = trigger.disabled
+            ? "Participant actions are available in shared meetings"
+            : "Participant options for " + key;
+        }
+      }
       if (tile.querySelector(".live-tile-sort-controls")) return;
       const label = key === YOU ? "your tile" : key;
       const controls = document.createElement("div");
@@ -103,7 +225,15 @@
 
   function syncTiles() {
     const chat = currentChat();
-    if (!chat?.liveMeeting || stage.classList.contains("hidden")) return;
+    if (!chat?.liveMeeting || stage.classList.contains("hidden")) {
+      closeAgentMenu();
+      return;
+    }
+    if (openMenuAgent && (openMenuChatId !== chat.id ||
+        !chat.participants.includes(openMenuAgent) ||
+        !findAgentTile(openMenuAgent)?.querySelector(".live-cell-menu"))) {
+      closeAgentMenu();
+    }
     enhanceTiles();
     const order = keysFor(chat);
     const tiles = [...grid.querySelectorAll("[data-live-tile]")];
@@ -142,13 +272,47 @@
   }
 
   grid.addEventListener("click", event => {
+    const more = event.target.closest("[data-live-more]");
+    if (more) {
+      event.stopPropagation();
+      toggleAgentMenu(more.dataset.liveMore);
+      return;
+    }
+    const option = event.target.closest("[data-live-menu-action]");
+    if (option) {
+      event.stopPropagation();
+      const agent = option.dataset.liveMenuAgent;
+      const action = option.dataset.liveMenuAction;
+      closeAgentMenu();
+      agentUiParticipantAction(action, agent);
+      return;
+    }
     const button = event.target.closest("[data-live-shift]");
     if (button) {
+      closeAgentMenu();
       shift(button.dataset.liveSortKey, button.dataset.liveShift);
     }
   });
 
   grid.addEventListener("keydown", event => {
+    if (event.key === "Escape" && openMenuAgent) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeAgentMenu(true);
+      return;
+    }
+    const menuButton = event.target.closest("[data-live-menu-action]");
+    if (menuButton && ["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      event.preventDefault();
+      const menu = menuButton.closest(".live-cell-menu");
+      const options = [...menu.querySelectorAll('[role="menuitem"]')];
+      const index = options.indexOf(menuButton);
+      const next = event.key === "Home" ? 0
+        : event.key === "End" ? options.length - 1
+        : (index + (event.key === "ArrowDown" ? 1 : -1) + options.length) % options.length;
+      options[next]?.focus();
+      return;
+    }
     const button = event.target.closest("[data-live-shift]");
     if (!button) return;
     const step = {
@@ -172,8 +336,13 @@
   }
 
   grid.addEventListener("dragstart", event => {
+    if (event.target.closest(".live-cell-more, .live-cell-menu, .live-tile-shift")) {
+      event.preventDefault();
+      return;
+    }
     const tile = event.target.closest("[data-live-tile]");
-    if (!tile || !currentChat()?.liveMeeting) return;
+    if (!tile || !currentChat()?.liveMeeting || tile.classList.contains("is-leaving")) return;
+    closeAgentMenu();
     dragging = tile.dataset.liveTile;
     tile.classList.add("is-dragging");
     if (event.dataTransfer) {
@@ -200,6 +369,22 @@
     reorder(from, to);
   });
   grid.addEventListener("dragend", resetDrag);
+
+  // Dismiss menus outside their tile and when switching presentation modes.
+  document.addEventListener("click", event => {
+    if (!event.target.closest(".live-cell-more, .live-cell-menu")) {
+      closeAgentMenu();
+    }
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") closeAgentMenu();
+  });
+  document.getElementById("motionToggle")?.addEventListener("click", () => {
+    if (!state.motionEnabled) {
+      closeAgentMenu();
+      finishPendingDepartures();
+    }
+  });
 
   // Hook the completed, existing Live Meeting renderer. Invite/join
   // animations remain owned by the original script and keep working.

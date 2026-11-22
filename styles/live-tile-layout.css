@@ -98,3 +98,96 @@
   .live-sort-hint { font-size: 9px !important; }
   .main.live-meeting-mode .live-participant-grid { padding: 2px 2px 5px; }
 }
+
+/* Per-agent menu: same actions as the top participant portraits.
+   Positioned inside the square to remain usable in compact tile layouts. */
+.live-participant-tile.live-cell-menu-open { z-index: 15; }
+.live-cell-more {
+  position: absolute;
+  z-index: 6;
+  top: 7px;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 27px;
+  padding: 0;
+  border: 1px solid rgba(174, 189, 205, .38);
+  border-radius: 6px;
+  background: rgba(11, 17, 25, .84);
+  color: #e7edf5;
+  font: 22px/1 var(--mono);
+  cursor: pointer;
+}
+.live-cell-more:hover:not(:disabled),
+.live-cell-more:focus-visible {
+  color: #1a1e23;
+  background: var(--gold);
+  border-color: var(--gold);
+}
+.live-cell-more:disabled { opacity: .42; cursor: not-allowed; }
+.live-cell-more[aria-expanded="true"] {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+.live-cell-menu {
+  position: absolute;
+  z-index: 7;
+  top: 37px;
+  right: 6px;
+  width: min(206px, calc(100% - 12px));
+  padding: 4px;
+  border: 1px solid #746036;
+  border-radius: 8px;
+  background: #181d23;
+  box-shadow: 0 11px 26px rgba(0, 0, 0, .72);
+}
+.live-cell-menu[hidden] { display: none !important; }
+.live-cell-menu-action {
+  display: block;
+  width: 100%;
+  min-height: 27px;
+  padding: 5px 7px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text);
+  font-size: 10.5px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.live-cell-menu-action:hover,
+.live-cell-menu-action:focus-visible {
+  background: #343022;
+  color: var(--ivory);
+}
+.live-cell-menu-action.danger { color: var(--red); }
+.live-cell-menu-action.danger:hover { background: #3b2225; }
+.live-participant-grid.is-micro .live-cell-more { width: 24px; height: 22px; font-size: 18px; }
+.live-participant-grid.is-micro .live-cell-menu { top: 31px; }
+.live-participant-grid.is-micro .live-cell-menu-action {
+  min-height: 25px;
+  padding: 4px 5px;
+  font-size: 10px;
+}
+
+/* Departure: accent flash, then fade/scale down before removing the tile.
+   The remaining equal-square tiles reflow only after the exit completes. */
+.live-participant-tile.is-leaving {
+  pointer-events: none;
+  animation: live-participant-leave 420ms cubic-bezier(.46, 0, .88, .52) both;
+}
+@keyframes live-participant-leave {
+  0% { opacity: 1; transform: translateY(0) scale(1); filter: none; }
+  27% { opacity: 1; transform: translateY(-3px) scale(1.02); filter: none; border-color: #f28b86; }
+  100% { opacity: 0; transform: translateY(19px) scale(.78); filter: blur(3px); }
+}
+.app.motion-disabled .live-participant-tile.is-leaving {
+  animation: none !important;
+}
+.live-participant-tile.is-joining .live-cell-more {
+  opacity: 0;
+  pointer-events: none;
+}
+
