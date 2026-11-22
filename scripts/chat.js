@@ -267,15 +267,11 @@ function renderAgentList() {
 
 function finishTypewriter() {
   if (!activeAnimation) return;
-
-  cancelAnimationFrame(activeAnimation.frame);
-
-  const { bubble, fullText, indicator } = activeAnimation;
+  clearInterval(activeAnimation.timer);
+  const {bubble, indicator, fullText} = activeAnimation;
   bubble.textContent = fullText;
   bubble.classList.remove("typing-cursor");
-
   if (indicator) indicator.remove();
-
   activeAnimation = null;
 }
 
@@ -286,10 +282,10 @@ function scrollToBottom() {
 
 function animateTypewriter(messageId, fullText) {
   const bubble = document.getElementById("bubble-" + messageId);
-  const indicator = document.getElementById("typing-" + messageId);
-
   if (!bubble) return;
+  finishTypewriter();
 
+  const indicator = document.getElementById("typing-" + messageId);
   if (!state.typewriter || reducedMotion.matches) {
     bubble.textContent = fullText;
     if (indicator) indicator.remove();
@@ -297,46 +293,27 @@ function animateTypewriter(messageId, fullText) {
     return;
   }
 
-  finishTypewriter();
-
   bubble.textContent = "";
   bubble.classList.add("typing-cursor");
-
-  const animation = {
-    bubble,
-    indicator,
-    fullText,
-    frame: 0,
-    start: null
-  };
-
+  const animation = {bubble, indicator, fullText, shown:0, timer:null};
   activeAnimation = animation;
 
-  function draw(time) {
+  const tick = () => {
     if (activeAnimation !== animation) return;
-
-    if (animation.start === null) animation.start = time;
-
-    const elapsed = time - animation.start;
-    const count = Math.min(
-      fullText.length,
-      Math.floor(elapsed / TYPEWRITER_MS_PER_CHAR) + 1
-    );
-
-    bubble.textContent = fullText.slice(0, count);
+    animation.shown = Math.min(fullText.length, animation.shown + 2);
+    bubble.textContent = fullText.slice(0, animation.shown);
     scrollToBottom();
-
-    if (count < fullText.length) {
-      animation.frame = requestAnimationFrame(draw);
-    } else {
+    if (animation.shown === fullText.length) {
+      clearInterval(animation.timer);
       bubble.classList.remove("typing-cursor");
       if (indicator) indicator.remove();
       activeAnimation = null;
     }
-  }
-
-  animation.frame = requestAnimationFrame(draw);
+  };
+  tick();
+  if (activeAnimation === animation) animation.timer = setInterval(tick, 28);
 }
+
 
 function renderMessages(animateId = null) {
   finishTypewriter();
@@ -519,6 +496,9 @@ function renderInspector() {
 
 function render() {
   const chat = currentChat();
+  $("thread").classList.toggle("meeting-grid", chat?.type === "meeting");
+  if (typeof agentUiDismissMention === "function") agentUiDismissMention();
+  syncInspectorControls();
 
   $("conversationTitle").textContent = chat
     ? chat.title : "Grid.AI Connect";
@@ -710,6 +690,7 @@ function sendMessage() {
   if (!chat) return;
 
   finishTypewriter();
+  if (typeof agentUiDismissMention === "function") agentUiDismissMention();
 
   chat.messages.push(makeMessage("You", text, { demo: false }));
   touchChat(chat);
@@ -1241,6 +1222,7 @@ $("inviteButton").addEventListener("click", () => {
 $("sendButton").addEventListener("click", sendMessage);
 
 $("messageInput").addEventListener("keydown", event => {
+  if (typeof agentUiHandleMentionKeydown === "function" && agentUiHandleMentionKeydown(event)) return;
   if (event.key === "Enter" &&
       !event.shiftKey &&
       !event.isComposing) {
@@ -1254,6 +1236,7 @@ $("messageInput").addEventListener("input", event => {
   input.style.height = "auto";
   input.style.height =
     Math.min(input.scrollHeight, 170) + "px";
+  if (typeof agentUiUpdateMentions === "function") agentUiUpdateMentions();
 });
 
 $("typewriterToggle").addEventListener("click", () => {
@@ -1345,14 +1328,37 @@ $("menuButton").addEventListener("click", () => {
   $("app").classList.remove("show-inspector");
 });
 
-$("inspectorButton").addEventListener("click", () => {
-  $("app").classList.toggle("show-inspector");
-  $("app").classList.remove("show-sidebar");
-});
+function inspectorIsNarrow() {
+  return window.matchMedia("(max-width: 1150px)").matches;
+}
+function inspectorIsOpen() {
+  const app = $("app");
+  return inspectorIsNarrow()
+    ? app.classList.contains("show-inspector")
+    : !app.classList.contains("inspector-collapsed");
+}
+function syncInspectorControls() {
+  const open = inspectorIsOpen();
+  $("inspectorButton").textContent = open ? "→" : "←";
+  $("inspectorButton").setAttribute("aria-label", open ? "Collapse session details" : "Expand session details");
+  $("inspectorButton").setAttribute("aria-expanded", String(open));
+  $("closeInspector").textContent = "→";
+  $("closeInspector").setAttribute("aria-label", "Collapse session details");
+}
+function toggleInspector() {
+  if (inspectorIsNarrow()) {
+    $("app").classList.toggle("show-inspector");
+    $("app").classList.remove("show-sidebar");
+  } else {
+    $("app").classList.toggle("inspector-collapsed");
+  }
+  syncInspectorControls();
+}
 
-$("closeInspector").addEventListener("click", () => {
-  $("app").classList.remove("show-inspector");
-});
+$("inspectorButton").addEventListener("click", toggleInspector);
+
+$("closeInspector").addEventListener("click", toggleInspector);
+window.addEventListener("resize", syncInspectorControls);
 
 $("cancelModal").addEventListener("click", closeModal);
 $("confirmModal").addEventListener("click", confirmModal);
@@ -1399,3 +1405,4 @@ document.addEventListener("click", event => {
 
 renderAgentList();
 render();
+syncInspectorControls();
