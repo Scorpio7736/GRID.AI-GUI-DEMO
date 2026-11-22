@@ -45,7 +45,7 @@ Open `Chat.html` or `Workflow-Designer.html` directly to view an individual demo
 
 - `styles/agent-ui.css` and `scripts/agent-ui.js` extend the Connect prototype with participant portraits and activity-derived **demo status indicators** without separate status buttons.
 - MCP, MAXIS, TRON, and JN use the headshots under `Programs/Agents/` in all Connect portrait surfaces, including chat, participants, and Live Meetings. VOLT and RELAY continue to show initials until their headshot files are added.
-- Compact Connect headshots stay inside their frames without cropping the outside status dots. Workflow Designer also uses MCP's headshot in its chat header and message bubbles.
+- Compact Connect headshots stay inside their frames without cropping the outside status dots. Workflow Designer displays MCP's headshot in circular chat-header and message avatars.
 - The centered participant bar offers **Remove from meeting**, **Whisper to**, and **Move to new chat**.
 - Whispers are held separately per meeting/agent in memory and are intentionally excluded from meeting TXT/MD context exports.
 - All displayed statuses, agent replies, and whispers are browser-local simulations; no live agent/host connection exists.
@@ -178,7 +178,7 @@ In **Live Meeting**, the redundant small participant avatars at the top fade out
 
 The **Remove from meeting** action has been relabeled **Ask to leave** in both agent menus. The agent immediately sends the scripted message **“See you guys later!”** to the same conversation before the existing 420 ms departure animation removes its tile. The farewell stays visible in the shared transcript after departure, and the demo prevents duplicate requests for an already-departing agent. Moving an agent to a new private chat also includes the farewell. When Live Meeting chat is hidden, the farewell is shown as a temporary notification.
 
-Live Meeting participant cells remain 1:1 squares, now with a tight **4 px gap** and **fixed-width grid tracks centered as a group** rather than stretching apart across the stage. Sizing still adapts to available space, participant count, sidebar visibility, and sorting preferences.
+Live Meeting participant cells remain 1:1 squares with a tight **4 px gap**. Fixed-size flex-wrapped tiles center **each row independently**, including incomplete final rows (such as four tiles above three), instead of stretching apart or aligning a short row to the left. Sizing still adapts to available space, participant count, sidebar visibility, and sorting preferences.
 
 ## Live Meeting system notifications and approval attention
 

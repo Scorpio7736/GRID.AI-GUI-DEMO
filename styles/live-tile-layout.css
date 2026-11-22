@@ -1,20 +1,20 @@
-/* Equal-square adaptive meeting tiles. Overrides fixed-height live cards. */
+/* Fixed-size square tiles wrap into centered rows. Unlike CSS Grid,
+   flexbox centers a partially filled last row independently (e.g. 4 + 3). */
 .main.live-meeting-mode .live-participant-grid {
   min-width: 0;
   min-height: 110px;
-  display: grid;
-  grid-template-columns: repeat(var(--live-grid-columns, 2), var(--live-tile-size, 190px));
-  grid-auto-rows: var(--live-tile-size, 190px);
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   justify-content: center;
   align-content: safe center;
-  justify-items: center;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 3px 5px 7px;
   scrollbar-gutter: stable;
 }
 .main.live-meeting-mode .live-participant-tile {
+  flex: 0 0 var(--live-tile-size, 190px);
   width: var(--live-tile-size, 190px);
   height: var(--live-tile-size, 190px);
   min-width: 0;
