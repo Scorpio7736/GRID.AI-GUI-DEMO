@@ -74,30 +74,21 @@ function agentUiPortrait(agent, presence = false) {
 }
 
 renderAgentList = function renderAgentListWithPortraits() {
-  $("agentList").innerHTML = ORDER.map(agent => {
-    const status = agentUiStatus(agent);
-    return `
-      <div class="agent-row-wrap">
-        <div class="agent-item">
-          <button class="agent-open" data-quick-agent="${agent}"
-                  aria-label="Start a conversation with ${agent}">
-            ${agentUiPortrait(agent, true)}
-            <div class="item-content">
-              <div class="item-title">${agent}</div>
-              <div class="agent-role">${escapeHtml(AGENTS[agent].role)}</div>
-              <div class="agent-presence-label">${escapeHtml(agentUiStatusLabel(agent))}</div>
-            </div>
-          </button>
-          <button class="agent-status-button" type="button"
-                  data-agent-status-info="${agent}" aria-label="Show automatic status for ${agent}"
-                  title="${escapeHtml(agentUiStatusLabel(agent))} · Derived from demo activity">
-            <span class="presence-dot presence-${status}" aria-hidden="true"></span>
-            <span aria-hidden="true">ⓘ</span>
-          </button>
-        </div>
+  $("agentList").innerHTML = ORDER.map(agent => `
+    <div class="agent-row-wrap">
+      <div class="agent-item">
+        <button class="agent-open" data-quick-agent="${agent}"
+                aria-label="Start a conversation with ${agent}">
+          ${agentUiPortrait(agent, true)}
+          <div class="item-content">
+            <div class="item-title">${agent}</div>
+            <div class="agent-role">${escapeHtml(AGENTS[agent].role)}</div>
+            <div class="agent-presence-label">${escapeHtml(agentUiStatusLabel(agent))}</div>
+          </div>
+        </button>
       </div>
-    `;
-  }).join("");
+    </div>
+  `).join("");
 };
 
 function agentUiRenderParticipants() {
@@ -486,16 +477,10 @@ function agentUiSendWhisper() {
   }, 450);
 }
 
-$("agentList").addEventListener("click", event => {
-  const button = event.target.closest("[data-agent-status-info]");
-  if (!button) return;
-  const agent = button.dataset.agentStatusInfo;
-  showToast(agent + ": " + agentUiStatusLabel(agent) + " · Based on the current demo activity; not host telemetry.");
-});
-
 $("headerParticipants").addEventListener("click", event => {
   const button = event.target.closest("[data-portrait-agent]");
   if (!button) return;
+  event.stopPropagation();
   const agent = button.dataset.portraitAgent;
   selectedParticipant = selectedParticipant === agent ? null : agent;
   agentUiRenderParticipants();
@@ -504,6 +489,7 @@ $("headerParticipants").addEventListener("click", event => {
 $("participantPopup").addEventListener("click", event => {
   const button = event.target.closest("[data-portrait-action]");
   if (!button || button.disabled) return;
+  event.stopPropagation();
   agentUiParticipantAction(button.dataset.portraitAction);
 });
 
