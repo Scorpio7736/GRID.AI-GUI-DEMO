@@ -88,6 +88,14 @@
     const card = el("article", "stored-workflow-card" +
       (record.status === "active" ? " is-active" : "") +
       (record.id === state.currentSavedId ? " is-selected" : ""));
+    // The entire card opens the blueprint; embedded action buttons keep
+    // their own independent click behavior.
+    card.dataset.workflowId = record.id;
+    card.tabIndex = 0;
+    card.setAttribute("role", "group");
+    card.setAttribute("aria-label", (record.name || "Untitled workflow") +
+      " saved workflow. Press Enter or Space to open.");
+    card.title = "Open " + (record.name || "Untitled workflow");
     const name = el("button", "stored-workflow-name", record.name || "Untitled workflow");
     name.type = "button";
     name.dataset.workflowAction = "open";
@@ -713,9 +721,24 @@
   $("exportJson").addEventListener("click", exportWorkflow);
   $("saveWorkflow").addEventListener("click", saveCurrentWorkflow);
   $("workflowLibrary").addEventListener("click", event => {
+    // Buttons always take priority, so activating or deleting never opens
+    // the workflow as a side effect.
     const button = event.target.closest("[data-workflow-action]");
-    if (!button) return;
-    handleWorkflowLibraryAction(button.dataset.workflowAction, button.dataset.workflowId);
+    if (button) {
+      handleWorkflowLibraryAction(button.dataset.workflowAction, button.dataset.workflowId);
+      return;
+    }
+    const card = event.target.closest(".stored-workflow-card[data-workflow-id]");
+    if (card) handleWorkflowLibraryAction("open", card.dataset.workflowId);
+  });
+  $("workflowLibrary").addEventListener("keydown", event => {
+    // Make the card itself keyboard-accessible without intercepting Enter
+    // or Space on its child buttons.
+    const card = event.target;
+    if (!card.matches(".stored-workflow-card[data-workflow-id]") ||
+        (event.key !== "Enter" && event.key !== " ")) return;
+    event.preventDefault();
+    handleWorkflowLibraryAction("open", card.dataset.workflowId);
   });
   $("resetFlow").addEventListener("click", () => {
     if (state.flow && state.dirty && !window.confirm("Discard unsaved changes and start a new draft?")) return;
