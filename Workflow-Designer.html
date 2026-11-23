@@ -16,6 +16,10 @@
       <span class="brand-copy"><strong>GRID<span>.AI</span></strong><small>CONTROL INTERFACE</small></span>
     </div>
     <div class="sidebar-content">
+      <label class="workflow-search-box" for="workflowSearch">
+        <span aria-hidden="true">⌕</span>
+        <input id="workflowSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Search workflows..." aria-label="Search saved and active workflows">
+      </label>
       <div class="nav-label">CURRENT WORKSPACE</div>
       <div class="studio-nav-link active" aria-label="Current workspace: Workflow Designer"><span class="nav-icon" aria-hidden="true">⌘</span><span>Workflow Designer</span><span class="nav-active-dot" aria-hidden="true"></span></div>
 
@@ -24,6 +28,30 @@
       <div class="sidebar-info"><span class="sidebar-info-icon" aria-hidden="true">◇</span><div><strong>Blueprint builder</strong><small>No external actions</small></div></div>
 
       <section class="workflow-library" id="workflowLibrary" aria-label="Workflow library">
+        <div class="workflow-organizer" aria-label="Organize saved workflows">
+          <label class="sr-only" for="workflowFolderFilter">Filter by folder</label>
+          <select id="workflowFolderFilter" aria-label="Filter workflows by folder"><option value="">All folders</option><option value="__unfiled__">Unfiled</option></select>
+          <label class="sr-only" for="workflowSort">Sort workflows</label>
+          <select id="workflowSort" aria-label="Sort workflows">
+            <option value="updated">Newest</option>
+            <option value="name">Name A–Z</option>
+            <option value="oldest">Oldest</option>
+            <option value="folder">Folder</option>
+          </select>
+          <button type="button" id="createWorkflowFolder" title="Create a folder">+ Folder</button>
+        </div>
+        <form id="workflowFolderForm" class="workflow-folder-form" hidden>
+          <label class="sr-only" for="workflowFolderName">New folder name</label>
+          <input id="workflowFolderName" type="text" maxlength="32" placeholder="Folder name" autocomplete="off" required>
+          <button type="submit">Add</button>
+          <button type="button" id="cancelWorkflowFolder" title="Cancel creating folder" aria-label="Cancel creating folder">×</button>
+        </form>
+        <div id="workflowFolderActions" class="workflow-folder-actions" hidden>
+          <span id="workflowCurrentFolder" class="workflow-current-folder"></span>
+          <button type="button" id="renameWorkflowFolder">Rename</button>
+          <button type="button" id="deleteWorkflowFolder">Delete</button>
+        </div>
+        <p id="workflowSearchSummary" class="workflow-search-summary" role="status" hidden></p>
         <div class="workflow-library-heading">
           <span>ACTIVE WORKFLOWS</span><span class="workflow-library-count" id="activeWorkflowCount">0</span>
         </div>
@@ -61,7 +89,16 @@
         <h1 id="pageTitle">From idea to <em>execution plan.</em></h1>
         <p>Design intelligent automations alongside MCP. Describe the goal in conversation, then refine the agents and steps in your workflow blueprint.</p>
       </div>
-      <div class="intro-stat" aria-label="Blueprint status"><span>WORKSPACE STATUS</span><strong><span class="status-dot"></span> Designing</strong><small>Nothing is connected or running</small></div>
+      <div class="intro-stat" aria-label="Your workspace status">
+        <span>WORKSPACE STATUS</span>
+        <button id="workspaceStatusButton" class="workspace-status-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="workspaceStatusMenu" title="Change your workspace status"><span class="status-dot"></span><span id="workspaceStatusLabel">Designing</span><span class="workspace-status-chevron" aria-hidden="true">⌄</span></button>
+        <div id="workspaceStatusMenu" class="workspace-status-menu" hidden>
+          <button type="button" data-workspace-status="designing">Designing</button>
+          <button type="button" data-workspace-status="reviewing">Reviewing</button>
+          <button type="button" data-workspace-status="on-hold">On hold</button>
+        </div>
+        <small id="workspaceStatusDescription">Your status · no agents running</small>
+      </div>
     </section>
 
     <div class="studio-grid">

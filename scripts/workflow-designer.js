@@ -19,7 +19,7 @@
     approval: {icon: "◆", label: "APPROVAL"},
     action: {icon: "↗", label: "OUTPUT"}
   });
-  const state = {flow: null, selectedStepId: null, revision: 0, nextStepId: 1, pendingReply: false, runTimer: null, runToken: 0, savedWorkflows: [], currentSavedId: null, dirty: false};
+  const state = {flow: null, selectedStepId: null, revision: 0, nextStepId: 1, pendingReply: false, runTimer: null, runToken: 0, savedWorkflows: [], folders: [], currentSavedId: null, dirty: false, searchQuery: "", folderFilter: "", sortMode: "updated", workspaceStatus: "designing"};
   let toastTimer = null;
 
   function el(tag, className, text) {
@@ -42,6 +42,12 @@
   // "Active" is a UI preview status, never a real agent or scheduled task.
   const WORKFLOW_STORAGE_KEY = "gridai-workflow-designer-library-v1";
   const MAX_LIBRARY_ENTRIES = 24;
+  const FOLDER_STORAGE_KEY = "gridai-workflow-designer-folders-v1";
+  const VIEW_STORAGE_KEY = "gridai-workflow-designer-view-v1";
+  const MAX_WORKFLOW_FOLDERS = 12;
+  const WORKSPACE_STATUSES = Object.freeze({
+    designing: "Designing", reviewing: "Reviewing", "on-hold": "On hold"
+  });
 
   function readWorkflowLibrary() {
     try {
@@ -50,7 +56,7 @@
       return value.workflows.filter(item =>
         item && typeof item.id === "string" &&
         typeof item.name === "string" &&
-        (item.status === "active" || item.status === "saved") &&
+        (item.status === "active" || item.status === "saved" || item.status === "paused") &&
         item.flow && typeof item.flow === "object" &&
         typeof item.flow.trigger === "string" &&
         Array.isArray(item.flow.steps) && item.flow.steps.length > 0 &&
@@ -80,13 +86,230 @@
     return true;
   }
 
+
+  // Migrate the original v1 library seamlessly: records without folderId
+  // remain unfiled and the separate folders/preferences keys are optional.
+  function readWorkflowFolders() {
+    try {
+      const value = JSON.parse(window.localStorage.getItem(FOLDER_STORAGE_KEY) || "[]");
+      if (!Array.isArray(value)) return [];
+      const seen = new Set();
+      return value.filter(folder => {
+        if (!folder || typeof folder.id !== "string" ||
+            !/^folder-[\w-]{1,40}$/.test(folder.id) ||
+            typeof folder.name !== "string" ||
+            !folder.name.trim() || folder.name.length > 32 ||
+            seen.has(folder.id)) return false;
+        seen.add(folder.id);
+        return true;
+      }).slice(0, MAX_WORKFLOW_FOLDERS);
+    } catch {
+      return [];
+    }
+  }
+
+  function storeWorkflowFolders(next) {
+    try {
+      window.localStorage.setItem(FOLDER_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      notify("Folder changes could not be saved in this browser.");
+      return false;
+    }
+    state.folders = next;
+    return true;
+  }
+
+  function loadLibraryView() {
+    try {
+      const v = JSON.parse(window.localStorage.getItem(VIEW_STORAGE_KEY) || "{}");
+      state.sortMode = ["updated", "oldest", "name", "folder"].includes(v.sortMode) ?
+        v.sortMode : "updated";
+      state.folderFilter = typeof v.folderFilter === "string" ? v.folderFilter : "";
+      state.workspaceStatus = Object.hasOwn(WORKSPACE_STATUSES, v.workspaceStatus) ?
+        v.workspaceStatus : "designing";
+    } catch {
+      // Storage may be disabled; use defaults.
+    }
+  }
+
+  function persistLibraryView() {
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY,
+        JSON.stringify({sortMode: state.sortMode, folderFilter: state.folderFilter,
+          workspaceStatus: state.workspaceStatus}));
+    } catch {
+      // The UI still works in-memory when browser storage is disabled.
+    }
+  }
+
+  function folderName(id) {
+    if (!id) return "Unfiled";
+    return state.folders.find(folder => folder.id === id)?.name || "Unfiled";
+  }
+
+  function folderValue(record) {
+    const id = typeof record.folderId === "string" ? record.folderId : "";
+    return state.folders.some(folder => folder.id === id) ? id : "";
+  }
+
+  function matchesLibraryView(record) {
+    const folder = folderValue(record);
+    if (state.folderFilter && (state.folderFilter === "__unfiled__" ?
+        Boolean(folder) : folder !== state.folderFilter)) return false;
+    const query = state.searchQuery.trim().toLocaleLowerCase();
+    if (!query) return true;
+    const searchText = [
+      record.name, record.flow.description, record.flow.trigger,
+      folderName(folder), record.status,
+      ...record.flow.steps.flatMap(step =>
+        [step.title, step.description, step.agent, step.skill?.filename])
+    ].filter(Boolean).join(" ").toLocaleLowerCase();
+    return searchText.includes(query);
+  }
+
+  function sortedWorkflows(items) {
+    const result = [...items];
+    const sort = state.sortMode;
+    const timestamp = (item, field) => Date.parse(item[field] || "") || 0;
+    if (sort === "name") result.sort((a, b) =>
+      a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+    else if (sort === "oldest") result.sort((a, b) =>
+      timestamp(a, "createdAt") - timestamp(b, "createdAt") ||
+      a.name.localeCompare(b.name));
+    else if (sort === "folder") result.sort((a, b) =>
+      folderName(folderValue(a)).localeCompare(folderName(folderValue(b))) ||
+      a.name.localeCompare(b.name));
+    else result.sort((a, b) =>
+      timestamp(b, "updatedAt") - timestamp(a, "updatedAt") ||
+      a.name.localeCompare(b.name));
+    return result;
+  }
+
+  function renderFolderControls() {
+    const selector = $("workflowFolderFilter");
+    const currentFilter = state.folderFilter;
+    if (currentFilter !== "" && currentFilter !== "__unfiled__" &&
+        !state.folders.some(folder => folder.id === currentFilter)) {
+      state.folderFilter = "";
+      persistLibraryView();
+    }
+    selector.replaceChildren(
+      new Option("All folders", ""),
+      new Option("Unfiled", "__unfiled__"),
+      ...[...state.folders].sort((a,b) => a.name.localeCompare(b.name))
+        .map(folder => new Option(folder.name, folder.id))
+    );
+    selector.value = state.folderFilter;
+    $("workflowSort").value = state.sortMode;
+    const folder = state.folders.find(item => item.id === state.folderFilter);
+    $("workflowFolderActions").hidden = !folder;
+    $("workflowCurrentFolder").textContent = folder?.name || "";
+  }
+
+  function addWorkflowFolder(name) {
+    const clean = String(name).trim().replace(/\s+/g, " ").slice(0, 32);
+    if (!clean) {
+      notify("Enter a folder name.");
+      return;
+    }
+    if (state.folders.length >= MAX_WORKFLOW_FOLDERS) {
+      notify("Maximum of 12 workflow folders.");
+      return;
+    }
+    if (state.folders.some(folder =>
+      folder.name.toLocaleLowerCase() === clean.toLocaleLowerCase())) {
+      notify("A folder with that name already exists.");
+      return;
+    }
+    const id = "folder-" + Date.now().toString(36) + "-" +
+      Math.random().toString(36).slice(2, 8);
+    const next = [...state.folders, {id, name: clean}];
+    if (!storeWorkflowFolders(next)) return;
+    state.folderFilter = id;
+    persistLibraryView();
+    $("workflowFolderForm").hidden = true;
+    $("workflowFolderName").value = "";
+    drawWorkflowLibrary();
+    notify("Folder created. Save or move blueprints into it.");
+  }
+
+  function renameCurrentWorkflowFolder() {
+    const current = state.folders.find(folder => folder.id === state.folderFilter);
+    if (!current) return;
+    const value = window.prompt("Rename folder:", current.name);
+    if (value === null) return;
+    const name = value.trim().replace(/\s+/g, " ").slice(0, 32);
+    if (!name || state.folders.some(folder => folder.id !== current.id &&
+        folder.name.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+      notify("Choose a nonempty, unique folder name.");
+      return;
+    }
+    if (!storeWorkflowFolders(state.folders.map(folder => folder.id === current.id ?
+        {...folder, name} : folder))) return;
+    drawWorkflowLibrary();
+    notify("Folder renamed");
+  }
+
+  function deleteCurrentWorkflowFolder() {
+    const current = state.folders.find(folder => folder.id === state.folderFilter);
+    if (!current) return;
+    if (!window.confirm("Delete folder “" + current.name +
+        "”? Its blueprints will move to Unfiled; none will be deleted.")) return;
+    const nextWorkflows = state.savedWorkflows.map(item =>
+      folderValue(item) === current.id ? {...item, folderId: ""} : item);
+    if (!storeWorkflowLibrary(nextWorkflows)) return;
+    if (!storeWorkflowFolders(state.folders.filter(folder => folder.id !== current.id))) {
+      notify("Folder removal was not completed; blueprints remain in Unfiled.");
+      return;
+    }
+    state.folderFilter = "";
+    persistLibraryView();
+    drawWorkflowLibrary();
+    notify("Folder deleted; its blueprints are now unfiled");
+  }
+
+  function moveWorkflowToFolder(id, folderId) {
+    const existing = state.savedWorkflows.find(item => item.id === id);
+    if (!existing) return;
+    const destination = state.folders.some(folder => folder.id === folderId) ?
+      folderId : "";
+    if (folderValue(existing) === destination) return;
+    const next = state.savedWorkflows.map(item => item.id === id ?
+      {...item, folderId: destination, updatedAt: new Date().toISOString()} : item);
+    if (!storeWorkflowLibrary(next)) return;
+    drawWorkflowLibrary();
+    notify("Moved “" + existing.name + "” to " + folderName(destination));
+  }
+
+  function renderWorkspaceStatus() {
+    const value = Object.hasOwn(WORKSPACE_STATUSES, state.workspaceStatus) ?
+      state.workspaceStatus : "designing";
+    $("workspaceStatusLabel").textContent = WORKSPACE_STATUSES[value];
+    $("workspaceStatusButton").dataset.status = value;
+    const count = state.savedWorkflows.filter(item => item.status === "active").length;
+    $("workspaceStatusDescription").textContent =
+      "Your status · " + count + " active preview" + (count === 1 ? "" : "s") +
+      " · no agents running";
+    $("workspaceStatusMenu").querySelectorAll("[data-workspace-status]").forEach(button => {
+      const current = button.dataset.workspaceStatus === value;
+      button.setAttribute("aria-pressed", String(current));
+      button.classList.toggle("is-current", current);
+    });
+  }
+
+  function closeWorkspaceStatus() {
+    $("workspaceStatusMenu").hidden = true;
+    $("workspaceStatusButton").setAttribute("aria-expanded", "false");
+  }
+
   function cloneBlueprint(flow) {
     return JSON.parse(JSON.stringify(flow));
   }
 
   function workflowCard(record) {
     const card = el("article", "stored-workflow-card" +
-      (record.status === "active" ? " is-active" : "") +
+      (record.status === "active" ? " is-active" :
+        record.status === "paused" ? " is-paused" : "") +
       (record.id === state.currentSavedId ? " is-selected" : ""));
     // The entire card opens the blueprint; embedded action buttons keep
     // their own independent click behavior.
@@ -103,12 +326,17 @@
     name.title = "Open this saved blueprint";
     const info = el("div", "stored-workflow-meta",
       String(record.flow.steps.length) + " steps · " + record.flow.trigger);
-    const status = el("div", "stored-workflow-status",
-      record.status === "active" ? "ACTIVE PREVIEW" : "SAVED DESIGN");
+    const statusText = record.status === "active" ? "ACTIVE PREVIEW" :
+      record.status === "paused" ? "PAUSED PREVIEW" : "SAVED DESIGN";
+    const status = el("div", "stored-workflow-status", statusText);
+    const folder = el("div", "stored-workflow-folder-tag", "▤ " +
+      folderName(folderValue(record)));
     const actions = el("div", "stored-workflow-actions");
+    const statusLabel = record.status === "active" ? "Pause" :
+      record.status === "paused" ? "Resume" : "Activate";
     const buttonSpec = [
       ["open", "Open", ""],
-      ["toggle", record.status === "active" ? "Pause" : "Activate", "workflow-activate"],
+      ["toggle", statusLabel, "workflow-activate"],
       ["delete", "Delete", "workflow-remove"]
     ];
     for (const [action, label, className] of buttonSpec) {
@@ -119,23 +347,42 @@
       button.setAttribute("aria-label", label + " " + record.name);
       actions.appendChild(button);
     }
-    card.append(name, info, status, actions);
+    const folderRow = el("div", "stored-workflow-folder-row");
+    const selector = el("select", "stored-workflow-folder-picker");
+    selector.dataset.workflowFolder = record.id;
+    selector.setAttribute("aria-label", "Move " + record.name + " to folder");
+    selector.append(new Option("Unfiled", ""),
+      ...[...state.folders].sort((a,b) => a.name.localeCompare(b.name))
+        .map(item => new Option(item.name, item.id)));
+    selector.value = folderValue(record);
+    folderRow.append(selector);
+    card.append(name, info, status, folder, actions, folderRow);
     return card;
   }
 
   function drawWorkflowLibrary() {
-    const active = state.savedWorkflows.filter(item => item.status === "active");
-    const saved = state.savedWorkflows.filter(item => item.status !== "active");
-    $("activeWorkflowCount").textContent = String(active.length);
-    $("savedWorkflowCount").textContent = String(saved.length);
-    const activeList = $("activeWorkflowList");
-    const savedList = $("savedWorkflowList");
-    activeList.replaceChildren(...(active.length ?
+    renderFolderControls();
+    renderWorkspaceStatus();
+    const allActive = state.savedWorkflows.filter(item => item.status === "active");
+    const allSaved = state.savedWorkflows.filter(item => item.status !== "active");
+    const active = sortedWorkflows(allActive.filter(matchesLibraryView));
+    const saved = sortedWorkflows(allSaved.filter(matchesLibraryView));
+    $("activeWorkflowCount").textContent = String(allActive.length);
+    $("savedWorkflowCount").textContent = String(allSaved.length);
+    const filtering = Boolean(state.searchQuery.trim() || state.folderFilter);
+    const resultCount = active.length + saved.length;
+    const summary = $("workflowSearchSummary");
+    summary.hidden = !filtering;
+    summary.textContent = resultCount + " of " + state.savedWorkflows.length +
+      " matching workflows";
+    $("activeWorkflowList").replaceChildren(...(active.length ?
       active.map(workflowCard) :
-      [el("p", "workflow-empty", "No active previews. Activate a saved design below to show it here.")]));
-    savedList.replaceChildren(...(saved.length ?
+      [el("p", "workflow-empty", filtering ? "No active previews match." :
+        "No active previews. Activate a saved design below to show it here.")]));
+    $("savedWorkflowList").replaceChildren(...(saved.length ?
       saved.map(workflowCard) :
-      [el("p", "workflow-empty", "No saved blueprints yet. Build a workflow with MCP, then choose Save workflow.")]));
+      [el("p", "workflow-empty", filtering ? "No saved blueprints match." :
+        "No saved blueprints yet. Build a workflow with MCP, then choose Save workflow.")]));
   }
 
   function updateSaveControl() {
@@ -166,6 +413,9 @@
       id,
       name: state.flow.name,
       status: previous ? previous.status : "saved",
+      folderId: previous ? folderValue(previous) :
+        (state.folders.some(folder => folder.id === state.folderFilter) ?
+          state.folderFilter : ""),
       flow: cloneBlueprint(state.flow),
       revision: state.revision,
       createdAt: previous ? previous.createdAt : date,
@@ -210,7 +460,7 @@
       return;
     }
     if (action === "toggle") {
-      const status = record.status === "active" ? "saved" : "active";
+      const status = record.status === "active" ? "paused" : "active";
       const next = state.savedWorkflows.map(item => item.id === id ?
         {...item, status, updatedAt: new Date().toISOString()} : item);
       if (!storeWorkflowLibrary(next)) return;
@@ -721,15 +971,19 @@
   $("exportJson").addEventListener("click", exportWorkflow);
   $("saveWorkflow").addEventListener("click", saveCurrentWorkflow);
   $("workflowLibrary").addEventListener("click", event => {
-    // Buttons always take priority, so activating or deleting never opens
-    // the workflow as a side effect.
+    // Buttons and folder selectors keep their actions separate from card opening.
     const button = event.target.closest("[data-workflow-action]");
     if (button) {
       handleWorkflowLibraryAction(button.dataset.workflowAction, button.dataset.workflowId);
       return;
     }
+    if (event.target.closest("select, option, label, input")) return;
     const card = event.target.closest(".stored-workflow-card[data-workflow-id]");
     if (card) handleWorkflowLibraryAction("open", card.dataset.workflowId);
+  });
+  $("workflowLibrary").addEventListener("change", event => {
+    const picker = event.target.closest("[data-workflow-folder]");
+    if (picker) moveWorkflowToFolder(picker.dataset.workflowFolder, picker.value);
   });
   $("workflowLibrary").addEventListener("keydown", event => {
     // Make the card itself keyboard-accessible without intercepting Enter
@@ -739,6 +993,58 @@
         (event.key !== "Enter" && event.key !== " ")) return;
     event.preventDefault();
     handleWorkflowLibraryAction("open", card.dataset.workflowId);
+  });
+  $("workflowSearch").addEventListener("input", event => {
+    state.searchQuery = event.target.value;
+    drawWorkflowLibrary();
+  });
+  $("workflowFolderFilter").addEventListener("change", event => {
+    state.folderFilter = event.target.value;
+    persistLibraryView();
+    drawWorkflowLibrary();
+  });
+  $("workflowSort").addEventListener("change", event => {
+    state.sortMode = event.target.value;
+    persistLibraryView();
+    drawWorkflowLibrary();
+  });
+  $("createWorkflowFolder").addEventListener("click", () => {
+    $("workflowFolderForm").hidden = false;
+    $("workflowFolderName").focus();
+  });
+  $("cancelWorkflowFolder").addEventListener("click", () => {
+    $("workflowFolderForm").hidden = true;
+    $("workflowFolderName").value = "";
+  });
+  $("workflowFolderForm").addEventListener("submit", event => {
+    event.preventDefault();
+    addWorkflowFolder($("workflowFolderName").value);
+  });
+  $("renameWorkflowFolder").addEventListener("click", renameCurrentWorkflowFolder);
+  $("deleteWorkflowFolder").addEventListener("click", deleteCurrentWorkflowFolder);
+  $("workspaceStatusButton").addEventListener("click", () => {
+    const menu = $("workspaceStatusMenu");
+    menu.hidden = !menu.hidden;
+    $("workspaceStatusButton").setAttribute("aria-expanded", String(!menu.hidden));
+  });
+  $("workspaceStatusMenu").addEventListener("click", event => {
+    const button = event.target.closest("[data-workspace-status]");
+    if (!button) return;
+    state.workspaceStatus = button.dataset.workspaceStatus;
+    persistLibraryView();
+    renderWorkspaceStatus();
+    closeWorkspaceStatus();
+    $("workspaceStatusButton").focus();
+    notify("Your workspace status: " + WORKSPACE_STATUSES[state.workspaceStatus]);
+  });
+  document.addEventListener("click", event => {
+    if (!event.target.closest(".intro-stat")) closeWorkspaceStatus();
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !$("workspaceStatusMenu").hidden) {
+      closeWorkspaceStatus();
+      $("workspaceStatusButton").focus();
+    }
   });
   $("resetFlow").addEventListener("click", () => {
     if (state.flow && state.dirty && !window.confirm("Discard unsaved changes and start a new draft?")) return;
@@ -808,6 +1114,8 @@
     commitRevision();
     notify("Step removed from draft");
   });
+  state.folders = readWorkflowFolders();
+  loadLibraryView();
   state.savedWorkflows = readWorkflowLibrary();
   drawWorkflowLibrary();
   render();
