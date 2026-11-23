@@ -407,3 +407,5 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible,
   .intro-stat>span{width:100%}
   .workspace-status-menu{left:0}
 }
+
+.workspace-status-button[data-status="working-with-user"] .status-dot{background:var(--green)}

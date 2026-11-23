@@ -19,7 +19,7 @@
     approval: {icon: "◆", label: "APPROVAL"},
     action: {icon: "↗", label: "OUTPUT"}
   });
-  const state = {flow: null, selectedStepId: null, revision: 0, nextStepId: 1, pendingReply: false, runTimer: null, runToken: 0, savedWorkflows: [], folders: [], currentSavedId: null, dirty: false, searchQuery: "", folderFilter: "", sortMode: "updated", workspaceStatus: "designing"};
+  const state = {flow: null, selectedStepId: null, revision: 0, nextStepId: 1, pendingReply: false, runTimer: null, runToken: 0, savedWorkflows: [], folders: [], currentSavedId: null, dirty: false, searchQuery: "", folderFilter: "", sortMode: "updated", workspaceStatus: "working-with-user"};
   let toastTimer = null;
 
   function el(tag, className, text) {
@@ -46,6 +46,7 @@
   const VIEW_STORAGE_KEY = "gridai-workflow-designer-view-v1";
   const MAX_WORKFLOW_FOLDERS = 12;
   const WORKSPACE_STATUSES = Object.freeze({
+    "working-with-user": "Working with User",
     designing: "Designing", reviewing: "Reviewing", "on-hold": "On hold"
   });
 
@@ -126,7 +127,7 @@
         v.sortMode : "updated";
       state.folderFilter = typeof v.folderFilter === "string" ? v.folderFilter : "";
       state.workspaceStatus = Object.hasOwn(WORKSPACE_STATUSES, v.workspaceStatus) ?
-        v.workspaceStatus : "designing";
+        v.workspaceStatus : "working-with-user";
     } catch {
       // Storage may be disabled; use defaults.
     }
@@ -283,7 +284,7 @@
 
   function renderWorkspaceStatus() {
     const value = Object.hasOwn(WORKSPACE_STATUSES, state.workspaceStatus) ?
-      state.workspaceStatus : "designing";
+      state.workspaceStatus : "working-with-user";
     $("workspaceStatusLabel").textContent = WORKSPACE_STATUSES[value];
     $("workspaceStatusButton").dataset.status = value;
     const count = state.savedWorkflows.filter(item => item.status === "active").length;
