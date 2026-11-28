@@ -16,13 +16,13 @@ const GridDemoText = (() => {
     ["memory",/\b(?:remember|recall|what did (?:i|we) say|conversation (?:history|context)|export context|persistent memory)\b/i],
     ["approval",/\b(?:approv\w*|authorization|authoriz\w*|consent|permission to|confirm before)\b/i],
     ["debug",/\b(?:debug\w*|bugs?|exceptions?|stack trace|crash\w*|fail(?:ed|ing|ure|ures)?|errors?|broken|not working|fix)\b/i],
-    ["review",/\b(?:review|inspect|audit|analy[sz]e|check|assess|compare|verify|investigate)\b/i],
+    ["review",/\b(?:review|inspect|audit|analy[sz]e|check|assess|compare|verify|investigate|find|identify|detect|search)\b/i],
     ["status",/\b(?:status|progress|how(?:'s| is) (?:it|the|your)|how are you doing|what are you working on|update on|health|are you busy)\b/i],
     ["explain",/\b(?:explain|what (?:is|are|does)|how (?:does|do|would|can|to)|why|difference between|teach)\b/i],
     ["plan",/\b(?:plan|outline|recommend|suggest|strategy|approach|roadmap|next steps|delegate|coordinate)\b/i],
-    ["action",/\b(?:create|build|write|make|send|delete|remove|install|run|execute|update|change|implement|organize|schedule|deploy|commit|push|merge|backup|summarize)\b/i]
+    ["action",/\b(?:create|build|write|make|send|email|delete|remove|install|run|execute|update|change|implement|organize|schedule|deploy|commit|push|merge|backup|summarize)\b/i]
   ];
-  const clean=s=>String(s??"").replace(/@[a-z0-9_-]+\b/gi," ").replace(/\s+/g," ").trim();
+  const clean=s=>String(s??"").replace(/(^|\s)@[a-z0-9_-]+\b/gi,"$1").replace(/\s+/g," ").trim();
   const social=s=>{
     if(/^(?:hi|hey|hello|good (?:morning|afternoon|evening))(?:[\s,!]+(?:there|everyone|team|guys|mcp|maxis|tron|jn|volt|relay))*[.!?]*$/i.test(s))return "greeting";
     if(/^(?:thank(?:s| you)(?: so much| a lot)?|much appreciated|awesome|great|nice|cool|perfect|sounds good|got it)[.! ]*$/i.test(s))return "thanks";
@@ -38,7 +38,7 @@ const GridDemoText = (() => {
     let domain=scores[0][1]?scores[0][0]:null;
     let intent=intents.find(([,re])=>re.test(text))?.[0]||"unknown";
     const followup=/^(?:yes|no|sure|okay|ok|go ahead|continue|do it|what about|how about|and |also |why\??$|how\??$|tell me more|more detail|what next|next step|elaborate|can you expand)/i.test(text);
-    if(followup && !domain){
+    if((followup || intent==="memory") && !domain){
       const prior=history.slice(-6).reverse().find(m=>m.role==="You"&&clean(m.text)&&!social(clean(m.text))&&!/^(?:yes|no|sure|okay|ok|go ahead|continue|do it|tell me more|more detail|what next)[.!? ]*$/i.test(clean(m.text)));
       if(prior){
         const previous=classify(prior.text,[]);

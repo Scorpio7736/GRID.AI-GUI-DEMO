@@ -867,7 +867,7 @@ function chooseAgent(message, chat) {
     return chat.participants[0];
   }
 
-  const directed = message.match(/@([A-Za-z]+)/);
+  const directed = message.match(/(?:^|\s)@([A-Za-z]+)\b/);
 
   if (directed) {
     const target = directed[1].toUpperCase();
@@ -880,7 +880,7 @@ function chooseAgent(message, chat) {
   }
 
   // Use only recent shared messages for routing; never include whispers.
-  const boundary=chat.livePrivateHistoryBoundary??0;
+  const boundary=Math.max(chat.livePrivateHistoryBoundary??0,...chat.participants.map(a=>chat.demoAgentHistoryStart?.[a]??0));
   return GridDemoText.route(message,chat.participants,chat.messages.slice(boundary,-1).filter(m=>m.role==="You"&&!m.kind).slice(-6));
 }
 
@@ -894,7 +894,7 @@ const AGENT_DEMO_BIOS = {
 };
 
 function demoScopedHistory(chat,agent) {
-  const boundary=chat.demoAgentHistoryStart?.[agent]??0;
+  const boundary=Math.max(chat.livePrivateHistoryBoundary??0,chat.demoAgentHistoryStart?.[agent]??0);
   return chat.messages.slice(boundary,-1).filter(m=>m.role&&!m.kind).slice(-8)
     .map(m=>({role:m.role,text:m.text}));
 }
