@@ -7,10 +7,12 @@
 */
 (function () {
   const button = document.getElementById("soundToggle");
-  if (!button) return;
+  const settings = window.GridSettings;
+  if (!button && !settings) return;
   const AudioCtor = window.AudioContext || window.webkitAudioContext;
   const available = typeof AudioCtor === "function";
-  let enabled = available;
+  let enabled = available && (settings?.get().sounds ?? true);
+  let volume = (settings?.get().volume ?? 67)/100;
   let context = null;
   let master = null;
   let lastImportantAt = -Infinity;
@@ -69,6 +71,7 @@
   });
 
   function updateButton() {
+    if (!button) return;
     button.textContent = enabled ? "♫ Sounds ON" : "♪ Sounds OFF";
     button.classList.toggle("enabled", enabled);
     button.setAttribute("aria-pressed", String(enabled));
@@ -88,7 +91,7 @@
       if (!context) {
         context = new AudioCtor();
         master = context.createGain();
-        master.gain.value = .67;
+        master.gain.value = enabled ? volume : 0;
         master.connect(context.destination);
       }
       if (context.state === "suspended") {
@@ -157,7 +160,7 @@
   document.addEventListener("pointerdown", gesture, {capture: true});
   document.addEventListener("keydown", gesture, {capture: true});
 
-  button.addEventListener("click", () => {
+  button?.addEventListener("click", () => {
     if (!available) return;
     enabled = !enabled;
     updateButton();
@@ -165,11 +168,17 @@
       master.gain.setTargetAtTime(0, context.currentTime, .012);
     } else if (enabled) {
       unlock();
-      if (master && context) master.gain.setTargetAtTime(.67, context.currentTime, .012);
+      if (master && context) master.gain.setTargetAtTime(volume, context.currentTime, .012);
       play("enabled");
     }
   });
 
+  settings?.subscribe(value => {
+    enabled=available&&value.sounds;volume=value.volume/100;
+    if(master&&context)master.gain.setTargetAtTime(enabled?volume:0,context.currentTime,.012);
+    updateButton();
+  });
   window.gridUiSound = play;
+  window.gridTestSound = () => {unlock();return play("notification");};
   updateButton();
 })();

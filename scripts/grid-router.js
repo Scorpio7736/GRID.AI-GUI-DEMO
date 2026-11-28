@@ -14,7 +14,7 @@
     "models":["Model Manager","planned","Yet to be added."],
     "voice-studio":["Voice Studio","planned","Yet to be added."],
     "terminal":["Terminal","planned","Yet to be added."],
-    settings:["Settings","planned","Configure preferences, permissions and system policies."]
+    settings:["Settings","settings"]
   };
   const motion=matchMedia("(prefers-reduced-motion: reduce)");
   const instances=new Map();let active=null,revision=0,transition=null;
@@ -79,7 +79,7 @@
   }
   function pageFor(route){return pages.find(p=>p.dataset.page===config[route][1]);}
   function animate(element,from,to,duration){
-    if(motion.matches||!element.animate)return null;
+    if(!window.GridSettings.motionEnabled()||!element.animate)return null;
     return element.animate([from,to],{duration,easing:"cubic-bezier(.22,.72,.25,1)",fill:"both"});
   }
   async function apply(route,params={}){

@@ -89,7 +89,7 @@
     animateDisclosure($("extraAgents"),expanded);
   }
   function showAttention() {
-    $("attention").scrollIntoView({block:"nearest",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+    $("attention").scrollIntoView({block:"nearest",behavior:!window.GridSettings.motionEnabled()?"auto":"smooth"});
     ($("approvalList").querySelector(".approval-card:not(.resolved)")||$("approvalList").querySelector("button"))?.focus({preventScroll:true});
   }
   function setNav(open) {
@@ -139,7 +139,7 @@
       control?.focus({preventScroll:true});
     }
     element.inert=!open;
-    if(reducedMotion.matches||typeof element.animate!=="function"){
+    if(!window.GridSettings.motionEnabled()||typeof element.animate!=="function"){
       element.hidden=!open;element.inert=!open;return;
     }
     const target=element.getBoundingClientRect().height;
@@ -159,7 +159,7 @@
   function drawNotifications(){
     const unread=notices.filter(n=>n.unread).length;
     $("bellCount").textContent=String(unread);
-    $("bellCount").hidden=!unread;
+    $("bellCount").hidden=!unread||!window.GridSettings.get().notificationBadge;
     $("notificationButton").setAttribute("aria-label","Notifications, "+unread+" unread");
     $("notificationSummary").textContent=unread+" unread · Demo";
     $("markNotificationsRead").disabled=!unread;
@@ -192,6 +192,7 @@
   }
 
   drawApprovals();
+  window.GridSettings.subscribe(drawNotifications);
 
   /* Agent presence: independent, staggered demo work cycles. */
   const agentTasks = {
@@ -457,7 +458,7 @@
       const description=node("p","",system.type+" · "+system.status+" (simulated)");
       details.append(summary,description);
       summary.addEventListener("click",event=>{
-        if(reducedMotion.matches||typeof description.animate!=="function")return;
+        if(!window.GridSettings.motionEnabled()||typeof description.animate!=="function")return;
         event.preventDefault();
         const existing=description.getAnimations()[0];
         if(existing){existing.reverse();return;}
@@ -502,7 +503,7 @@
   function openPanel(key){
     const resource=key==="system";
     if(resource)setResourceDetails(true);else setConnections(true);
-    $(resource?"systemResources":"connectedSystems").scrollIntoView({block:"nearest",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+    $(resource?"systemResources":"connectedSystems").scrollIntoView({block:"nearest",behavior:!window.GridSettings.motionEnabled()?"auto":"smooth"});
     $(resource?"resourceToggle":"connectionsToggle").focus({preventScroll:true});
     setNav(false);
   }

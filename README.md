@@ -262,3 +262,7 @@ Connect's embedded startup now waits until the agent UI's lexical state has been
 - Connect no longer displays the duplicate Master Control identity footer. The global top-right MC avatar is replaced with a gear shortcut to the Settings workspace; the global sidebar operator identity remains intact. Settings is still a planned workspace.
 
 - Global navigation includes File Manager, Skills Manager, Model Manager, Voice Studio and Terminal as “Yet to be added” placeholder workspaces, grouped under Workspace, Agent Management and System. The future city workspace (The Grid) is intentionally excluded. Each new tab has its own hash route and participates in existing navigation transitions and browser history.
+
+## Central Settings
+
+Settings owns browser-local sound enable/volume, Connect typewriter responses, animations (including OS reduced-motion), desktop sidebar pinning and notification badge visibility. Original Web Audio cues are initialized once by the shell. Local controls are hidden in embedded apps; standalone development pages retain their fallback controls. Preferences apply to mounted workspaces and future mounts. Reset affects preferences only. Configuration links lead to existing dedicated workspaces; backend policies, models, voices and integrations are not fabricated.
