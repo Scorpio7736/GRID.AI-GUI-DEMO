@@ -102,7 +102,7 @@
 
         <div class="canvas-toolbar">
           <div class="canvas-title"><span class="canvas-live-dot"></span><span>FLOW CANVAS</span><span class="canvas-hint">Select a step to edit</span></div>
-          <div class="canvas-tools"><button class="small-button" id="addStep" type="button" disabled>+ Add step</button><button class="small-button" id="previewRun" type="button" disabled>▷ Preview run</button></div>
+          <div class="canvas-tools"><button class="small-button" id="addStep" type="button" disabled>+ Add step</button><select id="branchType" class="branch-type-select" aria-label="Branch type" disabled><option value="conditional">Conditional</option><option value="parallel">Parallel</option></select><button class="small-button" id="addBranch" type="button" disabled>+ Branch</button><button class="small-button" id="previewRun" type="button" disabled>▷ Preview run</button></div>
         </div>
         <div class="workflow-canvas" id="workflowCanvas">
           <div class="empty-canvas" id="emptyCanvas">

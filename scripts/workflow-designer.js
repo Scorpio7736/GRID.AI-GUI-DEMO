@@ -426,6 +426,7 @@
         !window.confirm("Discard unsaved draft changes and open this saved blueprint?")) return;
     stopPreview();
     state.flow = cloneBlueprint(record.flow);
+    normalizeBranches(state.flow);
     state.currentSavedId = record.id;
     state.selectedStepId = null;
     state.revision = Number.isSafeInteger(record.revision) ? record.revision : 1;
@@ -585,7 +586,91 @@
     if (/notification|notify|alert/.test(text) && steps[steps.length - 1].agent === "RELAY") {
       steps[steps.length - 1].description = "Prepare an operator notification with relevant context. No real messages are sent.";
     }
-    return {id: "demo-workflow", name, description, trigger, category, steps, originalPrompt: prompt};
+    const flow={id:"demo-workflow",name,description,trigger,category,steps,branches:[],originalPrompt:prompt};
+    designBranches(flow,text);
+    return flow;
+  }
+
+  // Branches are contiguous, non-nested, two-path groups over the existing flat
+  // step IDs. Legacy blueprints without groups remain sequential.
+  function normalizeBranches(flow) {
+    const ids=flow.steps.map(s=>s.id),used=new Set();
+    const groups=Array.isArray(flow.branches)?flow.branches:[];
+    flow.branches=groups.filter(g=>{
+      if(!g||!["conditional","parallel"].includes(g.type)||!Array.isArray(g.paths)||g.paths.length!==2)return false;
+      if(typeof g.id!=="string"||typeof g.title!=="string"||g.paths.some(p=>!p||typeof p.label!=="string"||!Array.isArray(p.stepIds)||!p.stepIds.length))return false;
+      const flat=g.paths.flatMap(p=>p.stepIds),start=ids.indexOf(flat[0]);
+      if(start<=0||flat.some((id,i)=>ids[start+i]!==id||used.has(id))||new Set(flat).size!==flat.length)return false;
+      if(flat.some(id=>flow.steps.find(s=>s.id===id)?.kind==="trigger"))return false;
+      flat.forEach(id=>used.add(id));
+      g.previewPath=g.previewPath===1?1:0;
+      return true;
+    });
+    return flow.branches;
+  }
+  function groupFor(flow,id){return (flow.branches||[]).find(g=>g.paths.some(p=>p.stepIds.includes(id)));}
+  function pathFor(flow,id){return groupFor(flow,id)?.paths.find(p=>p.stepIds.includes(id));}
+  function insertBeforeOutput(flow){
+    const index=Math.max(1,flow.steps.length-1),group=groupFor(flow,flow.steps[index]?.id);
+    return group?flow.steps.findIndex(s=>s.id===group.paths[0].stepIds[0]):index;
+  }
+  function removeFromBranch(flow,id){
+    const group=groupFor(flow,id);
+    if(group)for(const path of group.paths)path.stepIds=path.stepIds.filter(x=>x!==id);
+    normalizeBranches(flow);
+  }
+  function addGroup(flow,type,title,left,right,labels){
+    const group={id:"branch-"+left[0].id,type,title,previewPath:0,paths:[
+      {label:labels[0],stepIds:left.map(s=>s.id)},{label:labels[1],stepIds:right.map(s=>s.id)}
+    ]};
+    (flow.branches ||= []).push(group);
+    normalizeBranches(flow);
+    return group;
+  }
+  function designBranches(flow,text){
+    const condition=/\b(?:if|otherwise|else|conditional|decision|branch|threshold)\b/i.test(text);
+    const parallel=/\b(?:parallel|simultaneously|concurrently|at the same time|independent paths)\b/i.test(text);
+    const steps=flow.steps;
+    if(flow.category==="monitor"||condition&&!parallel){
+      const start=flow.category==="monitor"?steps.findIndex(s=>s.title==="Triage issues"):steps.length-1;
+      const left=steps.slice(Math.max(1,start));
+      const fallback=newStep("action","MCP",flow.category==="monitor"?"Record normal health":"Record skipped outcome","Record the outcome without escalating or sending the optional action.");
+      steps.push(fallback);
+      addGroup(flow,"conditional",flow.category==="monitor"?"Threshold exceeded?":"Condition met?",left,[fallback],["YES · proceed","NO · record only"]);
+    }else if(flow.category==="code"||parallel){
+      if(flow.category==="code"){
+        addGroup(flow,"parallel","Independent reviews",[steps[1]],[steps[2]],["Code review","Security review"]);
+      }else{
+        const index=steps.findIndex((s,i)=>i>1&&s.kind==="process");
+        if(index<0)return;
+        const left=steps[index],right=newStep("process","MCP","Independent validation","Review the proposed criteria independently, then combine findings.");
+        steps.splice(index+1,0,right);
+        addGroup(flow,"parallel","Independent work",[left],[right],["Specialist analysis","Validation"]);
+      }
+    }
+  }
+  function manualBranch(type){
+    if(!state.flow||state.pendingReply)return;
+    const flow=state.flow;
+    if(flow.steps.length>198)return notify("Maximum of 200 steps.");
+    const left=newStep("process","MCP",type==="conditional"?"Handle matching condition":"Process path A","Describe the work for this path.");
+    const right=newStep("process",type==="conditional"?"MCP":"MAXIS",type==="conditional"?"Handle alternate condition":"Process path B","Describe the work for this path.");
+    flow.steps.splice(insertBeforeOutput(flow),0,left,right);
+    addGroup(flow,type,type==="conditional"?"Condition met?":"Parallel work",[left],[right],type==="conditional"?["YES · proceed","NO · alternate"]:["Path A","Path B"]);
+    state.selectedStepId=left.id;
+    commitRevision();
+    notify(type==="conditional"?"Conditional branch added":"Parallel branch added");
+  }
+  function previewStages(flow){
+    const groups=normalizeBranches(flow),byId=new Map(groups.map(g=>[g.paths[0].stepIds[0],g])),members=new Set(groups.flatMap(g=>g.paths.flatMap(p=>p.stepIds))),stages=[];
+    for(const step of flow.steps){
+      const g=byId.get(step.id);
+      if(g){
+        if(g.type==="conditional")g.paths[g.previewPath].stepIds.forEach(id=>stages.push([id]));
+        else for(let i=0;i<Math.max(...g.paths.map(p=>p.stepIds.length));i++)stages.push(g.paths.map(p=>p.stepIds[i]).filter(Boolean));
+      }else if(!members.has(step.id))stages.push([step.id]);
+    }
+    return stages;
   }
 
   function currentStep() {
@@ -600,20 +685,21 @@
     }
     $("previewRun").disabled = state.pendingReply || !state.flow;
     $("previewRun").textContent = "▷ Preview run";
-    document.querySelectorAll(".flow-node").forEach(node => node.classList.remove("is-running", "is-complete"));
+    document.querySelectorAll(".flow-node").forEach(node => node.classList.remove("is-running", "is-complete","is-skipped"));
   }
 
   function renderSteps() {
-    const list = $("flowSteps");
-    list.replaceChildren();
-    if (!state.flow) return;
-    const visible = draftJob?.reveal == null ? state.flow.steps : state.flow.steps.slice(0,draftJob.reveal);
-    visible.forEach((step, i) => {
-      if (i > 0) list.append(el("div", "flow-connector"));
+    const list=$("flowSteps");list.replaceChildren();
+    if(!state.flow)return;
+    const flow=state.flow,visible=draftJob?.reveal==null?flow.steps:flow.steps.slice(0,draftJob.reveal),visibleIds=new Set(visible.map(s=>s.id));
+    const groups=normalizeBranches(flow),byId=new Map(groups.map(g=>[g.paths[0].stepIds[0],g])),members=new Set(groups.flatMap(g=>g.paths.flatMap(p=>p.stepIds)));
+    function makeNode(step){
+      const i=flow.steps.indexOf(step);
       const node = el("button", "flow-node kind-" + step.kind + (step.id === state.selectedStepId ? " selected" : ""));
       node.type = "button";
       node.disabled = state.pendingReply;
-      if(state.pendingReply && i===visible.length-1)node.classList.add("draft-node-enter");
+      if(state.pendingReply && step.id===draftJob?.lastRevealedId)node.classList.add("draft-node-enter");
+      if(draftJob?.removing?.includes(step.id))node.classList.add("draft-node-remove");
       node.dataset.stepId = step.id;
       node.setAttribute("aria-label", "Edit step " + (i + 1) + ": " + step.title);
       node.setAttribute("aria-pressed", String(step.id === state.selectedStepId));
@@ -634,13 +720,51 @@
         renderSteps();
         renderInspector();
       });
-      list.append(node);
-    });
+
+      return node;
+    }
+    let first=true;
+    const connect=()=>{if(!first)list.append(el("div","flow-connector"));first=false;};
+    for(const step of visible){
+      const g=byId.get(step.id);
+      if(g){
+        connect();
+        const group=el("section","flow-branch "+g.type);group.setAttribute("aria-label",g.type+" branch");
+        const header=el("div","branch-heading");
+        header.append(el("span","branch-type",g.type==="conditional"?"◆ DECISION":"⑂ PARALLEL"));
+        const title=el("input","branch-title");title.type="text";title.maxLength=100;title.value=g.title;title.disabled=state.pendingReply;title.setAttribute("aria-label","Branch title or condition");
+        title.addEventListener("change",()=>{g.title=title.value.trim().slice(0,100)|| (g.type==="conditional"?"Condition met?":"Parallel work");commitRevision();});
+        header.append(title);
+        if(!state.pendingReply){
+          const flatten=el("button","branch-flatten","Flatten");flatten.type="button";flatten.title="Convert paths to sequential steps without deleting steps";
+          flatten.addEventListener("click",()=>{flow.branches=flow.branches.filter(x=>x.id!==g.id);commitRevision();notify("Branch flattened — steps retained");});
+          header.append(flatten);
+        }
+        group.append(header,el("div","branch-split"));
+        const lanes=el("div","branch-lanes");
+        g.paths.forEach((path,index)=>{
+          const lane=el("div","branch-lane");
+          const label=el("div","branch-lane-label",path.label);
+          lane.append(label);
+          const shown=path.stepIds.filter(id=>visibleIds.has(id));
+          shown.forEach((id,i)=>{if(i)lane.append(el("div","flow-connector"));lane.append(makeNode(flow.steps.find(s=>s.id===id)));});
+          if(!shown.length)lane.append(el("div","branch-empty","Planning path…"));
+          lanes.append(lane);
+        });
+        group.append(lanes,el("div","branch-join"));
+        if(g.type==="conditional"&&!state.pendingReply){
+          const choice=el("label","branch-preview-choice","Preview path ");
+          const select=el("select");select.setAttribute("aria-label","Conditional preview path");
+          g.paths.forEach((p,i)=>{const option=el("option","",p.label);option.value=String(i);select.append(option);});
+          select.value=String(g.previewPath);select.addEventListener("change",()=>{g.previewPath=Number(select.value);commitRevision();});
+          choice.append(select);group.append(choice);
+        }
+        list.append(group);
+      }else if(!members.has(step.id)){connect();list.append(makeNode(step));}
+    }
     if(state.pendingReply)return;
-    list.append(el("div", "flow-connector"));
-    const terminal = el("div", "flow-terminal");
-    terminal.append(el("i"), document.createTextNode("WORKFLOW COMPLETE · PREVIEW"));
-    list.append(terminal);
+    list.append(el("div","flow-connector"));
+    const terminal=el("div","flow-terminal");terminal.append(el("i"),document.createTextNode("WORKFLOW COMPLETE · PREVIEW"));list.append(terminal);
   }
 
 
@@ -703,8 +827,8 @@
     $("editStepDescription").value = step.description;
     $("editStepAgent").value = step.agent;
     const index = state.flow.steps.indexOf(step);
-    $("moveStepUp").disabled = index <= 1;
-    $("moveStepDown").disabled = index === 0 || index === state.flow.steps.length - 1;
+    $("moveStepUp").disabled = !canMoveStep(index,-1);
+    $("moveStepDown").disabled = !canMoveStep(index,1);
     $("removeStep").disabled = index === 0;
     renderStepSkill(step);
   }
@@ -722,6 +846,8 @@
     $("metricAgents").textContent = flow ? new Set(visibleSteps.map(step => step.agent).filter(x => x !== "HUMAN" && x !== "SYSTEM")).size : "0";
     $("metricTrigger").textContent = flow ? flow.trigger : "—";
     $("addStep").disabled = state.pendingReply || !flow;
+    $("branchType").disabled=state.pendingReply||!flow;
+    $("addBranch").disabled=state.pendingReply||!flow;
     $("previewRun").disabled = state.pendingReply || !flow;
     $("exportJson").disabled = state.pendingReply;
     $("resetFlow").disabled = state.pendingReply;
@@ -764,6 +890,7 @@
 
   function commitRevision() {
     stopPreview();
+    if(state.flow)normalizeBranches(state.flow);
     state.revision++;
     state.dirty = true;
     render();
@@ -776,7 +903,7 @@
     const approvalIndex = flow.steps.findIndex(step => step.kind === "approval");
     if (/^(?:please )?(?:add|include|require|put|insert)\b.*(?:approval|human review|permission)/i.test(text)) {
       if (approvalIndex >= 0) return "An approval gate is already in this blueprint. You can select it to adjust its instructions.";
-      const index = Math.max(1, flow.steps.length - 1);
+      const index = insertBeforeOutput(flow);
       flow.steps.splice(index, 0, newStep("approval", "HUMAN", "Approve next action", "Master Control must approve the proposed action before continuing."));
       commitRevision();
       return "Added a human approval gate before the final output. The new step is editable on the canvas.";
@@ -784,6 +911,7 @@
     if (/^(?:please )?(?:remove|delete|skip)\b.*(?:approval|human review|permission)/i.test(text)) {
       if (approvalIndex < 0) return "This blueprint does not currently have an approval gate.";
       const removed = flow.steps.splice(approvalIndex, 1)[0];
+      removeFromBranch(flow,removed.id);
       if (state.selectedStepId === removed.id) state.selectedStepId = null;
       commitRevision();
       return "Removed the approval step from the design. For a real deployment, sensitive actions would still need policy enforcement.";
@@ -799,7 +927,7 @@
     }
     if (/(?:send|deliver|notify|email).*(?:email|notification|alert)|(?:by|via) email/i.test(text) &&
         /^(?:also|please|and|send|deliver|notify|email|change|make)/i.test(text)) {
-      const last = flow.steps[flow.steps.length - 1];
+      const last = flow.steps.findLast(step=>step.kind==="action"&&step.agent==="RELAY")||flow.steps[flow.steps.length - 1];
       last.agent = "RELAY";
       last.title = /email/i.test(text) ? "Email the result" : "Notify Master Control";
       last.description = /email/i.test(text) ? "Prepare an email with the workflow outcome; delivery requires a future integration." : "Prepare an operator notification; delivery requires a future integration.";
@@ -842,7 +970,8 @@
         new Set(state.flow.steps.map(step => step.agent).filter(x => x !== "SYSTEM" && x !== "HUMAN")).size +
         " specialist agent(s)." +
         (state.flow.steps.some(step => step.kind === "approval") ? " I included a Master Control approval gate." : "") +
-        "\n\nSelect a step on the canvas to edit its instructions or assigned agent. You can also tell me things like “add approval,” “run every Friday at 9 AM,” or “send the result by email.”",
+        (state.flow.branches.length?" I included "+state.flow.branches.map(g=>g.type==="parallel"?"parallel paths":"a conditional branch").join(" and ")+".":"") +
+        "\n\nSelect a step or edit a branch on the canvas. You can also tell me things like “add approval,” “run every Friday at 9 AM,” or “send the result by email.”",
       note:"New workflow blueprint generated · v0."+state.revision,created:true
     };
   }
@@ -933,14 +1062,38 @@
         job.result=prepareDraft(text);
         render();
         const steps=state.flow?.steps||[];
+        const candidates=[];
+        if(job.result.created&&steps.length>2&&(/optimi[sz]e|simplif|efficient/i.test(text)||Math.random()<.48)){
+          candidates.push(newStep("process","MCP","Collect additional context","Provisional preflight — compare with the existing analysis before retaining."));
+          if(Math.random()<.28)candidates.push(newStep("process","MCP","Prepare separate planning notes","Provisional review — check whether the existing workflow already covers this."));
+          steps.splice(1,0,...candidates);
+        }
+        function reviewBlueprint(){
+          const hasApproval=steps.some(s=>s.kind==="approval");
+          setDraftStage(job,"Reviewing blueprint…",hasApproval?"Checking branch paths, step order and approval gates.":"Checking branch paths, step order and final output.",96);
+          scheduleDraft(job,()=>finishDraft(job,"complete"),draftDelay(900,1400));
+        }
         function revealNext(){
           if(job.reveal>=steps.length){
-            const hasApproval=steps.some(s=>s.kind==="approval");
-            setDraftStage(job,"Reviewing blueprint…",hasApproval?"Checking step order and approval gates.":"Checking step order and final output.",92);
-            scheduleDraft(job,()=>finishDraft(job,"complete"),draftDelay(900,1400));
+            if(!candidates.length){reviewBlueprint();return;}
+            setDraftStage(job,"Reconsidering draft…","Comparing provisional steps with existing specialist work.",90);
+            scheduleDraft(job,()=>{
+              job.removing=candidates.map(s=>s.id);
+              setDraftStage(job,"Simplifying workflow…","Removing "+candidates.length+" redundant provisional step(s); retaining required reviews and approvals.",93);
+              render();
+              scheduleDraft(job,()=>{
+                for(const candidate of candidates){const index=steps.indexOf(candidate);if(index>=0)steps.splice(index,1);}
+                job.reveal=steps.length;job.removing=[];job.lastRevealedId=null;
+                job.result.reply+="\\n\\nI consolidated "+candidates.length+" redundant provisional step(s) into the existing plan; approval gates remain unchanged.";
+                job.result.reply=job.result.reply.replace(/\\n/g,"\n");
+                job.result.note+=" · "+candidates.length+" provisional step(s) removed";
+                render();reviewBlueprint();
+              },draftDelay(650,1050));
+            },draftDelay(800,1300));
             return;
           }
           const step=steps[job.reveal++];
+          job.lastRevealedId=step.id;
           setDraftStage(job,"Drafting step "+job.reveal+" of "+steps.length+"…",step.agent+" · "+step.title,35+Math.round(job.reveal/steps.length*52));
           render();
           const canvas=$("workflowCanvas");
@@ -952,15 +1105,23 @@
     },draftDelay(950,1450));
   }
 
+  function canMoveStep(index,delta){
+    const flow=state.flow,items=flow.steps,next=index+delta;
+    if(index<=0||next<=0||next>=items.length)return false;
+    const a=pathFor(flow,items[index].id),b=pathFor(flow,items[next].id);
+    return a===b;
+  }
   function moveSelected(delta) {
     const step = currentStep();
     if (!step) return;
     const items = state.flow.steps;
     const index = items.indexOf(step);
     const nextIndex = index + delta;
-    if (index <= 0 || nextIndex <= 0 || nextIndex >= items.length) return;
+    if (!canMoveStep(index,delta)) return;
     items.splice(index, 1);
     items.splice(nextIndex, 0, step);
+    const path=pathFor(state.flow,step.id);
+    if(path)path.stepIds=items.filter(s=>path.stepIds.includes(s.id)).map(s=>s.id);
     commitRevision();
     notify("Step reordered");
   }
@@ -969,7 +1130,7 @@
     if (!state.flow || state.pendingReply) return;
     stopPreview();
     const token = state.runToken;
-    const stepIds = state.flow.steps.map(step => step.id);
+    const stages=previewStages(state.flow),stepIds=stages.flat(),skipped=new Set(state.flow.steps.map(s=>s.id).filter(id=>!stepIds.includes(id)));
     $("previewRun").disabled = true;
     $("previewRun").textContent = "◉ Previewing...";
     notify("Simulating flow traversal — no agents are running");
@@ -977,15 +1138,16 @@
     const iterate = () => {
       if (token !== state.runToken) return;
       document.querySelectorAll(".flow-node").forEach(node => {
-        const n = stepIds.indexOf(node.dataset.stepId);
-        node.classList.toggle("is-complete", n < index);
-        node.classList.toggle("is-running", n === index);
+        const id=node.dataset.stepId,n=stages.findIndex(stage=>stage.includes(id));
+        node.classList.toggle("is-skipped",skipped.has(id));
+        node.classList.toggle("is-complete",n>=0&&n<index);
+        node.classList.toggle("is-running",n===index);
       });
-      if (index >= stepIds.length) {
+      if (index >= stages.length) {
         state.runTimer = null;
         $("previewRun").disabled = false;
         $("previewRun").textContent = "▷ Preview run";
-        note("Dry-run animation complete · no work was executed");
+        note("Dry-run animation complete · "+(skipped.size?skipped.size+" alternate-path step(s) skipped · ":"")+"no work was executed");
         notify("Preview complete — no external actions");
         return;
       }
@@ -1002,7 +1164,7 @@
       return;
     }
     const copy = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       demoOnly: true,
       name: state.flow.name,
       description: state.flow.description,
@@ -1013,6 +1175,7 @@
         skill: step.skill ? {fileName: step.skill.filename,
           sizeBytes: step.skill.bytes, content: step.skill.text} : null
       })),
+      branches:cloneBlueprint({steps:[],branches:normalizeBranches(state.flow)}).branches,
       executionEnabled: false,
       note: "UI concept only. This JSON is not an executable GRID.AI workflow."
     };
@@ -1045,11 +1208,12 @@
   $("addStep").addEventListener("click", () => {
     if (!state.flow) return;
     const step = newStep("process", "MCP", "New processing step", "Describe what this agent should accomplish.");
-    state.flow.steps.splice(Math.max(1, state.flow.steps.length - 1), 0, step);
+    state.flow.steps.splice(insertBeforeOutput(state.flow), 0, step);
     state.selectedStepId = step.id;
     commitRevision();
     $("editStepTitle").focus();
   });
+  $("addBranch").addEventListener("click",()=>manualBranch($("branchType").value));
   $("previewRun").addEventListener("click", previewRun);
   $("exportJson").addEventListener("click", exportWorkflow);
   $("saveWorkflow").addEventListener("click", saveCurrentWorkflow);
@@ -1171,6 +1335,7 @@
     const step = currentStep();
     if (!step || step.kind === "trigger") return;
     state.flow.steps = state.flow.steps.filter(item => item.id !== step.id);
+    removeFromBranch(state.flow,step.id);
     state.selectedStepId = null;
     commitRevision();
     notify("Step removed from draft");
