@@ -390,3 +390,6 @@
 
 /* Match Home's gold background-work status palette. */
 .presence-background{background:#f4cb54}
+
+.presence-hold{background:#f07878!important}
+[data-grid-presence-mode="hold"]{color:#f07878!important}

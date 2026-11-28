@@ -132,7 +132,7 @@
     if(location.hash!==hash)history.pushState(null,"",hash);
     return apply(route,params);
   }
-  window.GridRouter={open,presence:()=>Object.fromEntries(Object.entries(window.GridPresence.snapshot()).map(([agent,record])=>[agent,record.mode]))};
+  window.GridRouter={open,decideApproval:(id,status)=>instances.get("connect")?.api.decideApproval(id,status)??false,presence:()=>Object.fromEntries(Object.entries(window.GridPresence.snapshot()).map(([agent,record])=>[agent,record.mode]))};
   document.addEventListener("click",event=>{
     const link=event.target.closest?.("a[data-route]");
     if(!link||event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||event.altKey||event.shiftKey)return;

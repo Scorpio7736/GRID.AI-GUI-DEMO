@@ -492,3 +492,5 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible,
 .flow-node.draft-node-remove .node-name{text-decoration:line-through;color:#f07878}
 @keyframes draft-remove{from{opacity:1;transform:none}to{opacity:.18;transform:scale(.94)}}
 @media(prefers-reduced-motion:reduce){.flow-node.draft-node-remove{animation:none!important;opacity:.4}}
+
+.mcp-presence[data-status="hold"]{color:#f07878}.mcp-avatar .avatar-online[data-status="hold"]{background:#f07878}

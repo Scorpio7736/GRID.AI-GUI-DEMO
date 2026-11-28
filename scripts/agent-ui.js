@@ -14,7 +14,8 @@ const AGENT_UI_STATUSES = [
   { id: "background", label: "Working in the background" },
   { id: "user", label: "Working with User" },
   { id: "agents", label: "Working with other Agents" },
-  { id: "both", label: "Working with User and Other Agents" }
+  { id: "both", label: "Working with User and Other Agents" },
+  { id: "hold", label: "On Hold" }
 ];
 // Presence is derived from selected chats and in-flight demo work. It is not user-set.
 let selectedParticipant = null;
@@ -106,7 +107,7 @@ renderAgentList = function renderAgentListWithPortraits() {
           <div class="item-content">
             <div class="item-title">${agent}</div>
             <div class="agent-role">${escapeHtml(AGENTS[agent].role)}</div>
-            <div class="agent-presence-label" data-grid-presence-label="${agent}">${escapeHtml(agentUiStatusLabel(agent))}</div>
+            <div class="agent-presence-label" data-grid-presence-label="${agent}" data-grid-presence-mode="${agentUiStatus(agent)}">${escapeHtml(agentUiStatusLabel(agent))}</div>
           </div>
         </button>
       </div>
@@ -153,7 +154,7 @@ function agentUiRenderParticipants() {
         <small>${escapeHtml(AGENTS[agent].role)}</small>
         <div class="popup-presence">
           <span class="presence-dot presence-${agentUiStatus(agent)}" data-grid-presence-agent="${agent}" aria-hidden="true"></span>
-          <span data-grid-presence-label="${agent}">${escapeHtml(agentUiStatusLabel(agent))}</span>
+          <span data-grid-presence-label="${agent}" data-grid-presence-mode="${agentUiStatus(agent)}">${escapeHtml(agentUiStatusLabel(agent))}</span>
         </div>
       </div>
     </div>
@@ -263,6 +264,7 @@ function agentUiEnhanceInspector() {
       const label = document.createElement("div");
       label.className = "participant-status-label";
       label.dataset.gridPresenceLabel=agent;
+      label.dataset.gridPresenceMode=agentUiStatus(agent);
       label.textContent = agentUiStatusLabel(agent) + " · Demo";
       sub.after(label);
     }
@@ -732,6 +734,7 @@ window.GridPresence?.subscribe((snapshot,changed)=>{
   }
   for(const node of document.querySelectorAll("[data-grid-presence-label]")){
     const agent=node.dataset.gridPresenceLabel;if(!changed.includes(agent))continue;
+    node.dataset.gridPresenceMode=snapshot[agent].mode;
     node.textContent=snapshot[agent].label+(node.classList.contains("participant-status-label")?" · Demo":"");
   }
   for(const node of document.querySelectorAll("[data-portrait-agent]")){

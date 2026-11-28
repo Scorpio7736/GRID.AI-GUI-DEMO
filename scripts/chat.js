@@ -95,8 +95,10 @@ function makePendingReply(agent) {
 function demoTypingDots(agent) {
   return `<span class="demo-thinking-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span><span class="sr-only">${escapeHtml(agent)} is typing</span>`;
 }
+let nextApprovalId=0;
+function approvalId(chat){return chat.approval?.id||"connect-"+chat.id;}
 function saveState(){
-  window.GridHome?.setConnectApprovals(state.chats.filter(c=>c.approval).map(c=>({id:"connect-"+c.id,chatId:c.id,title:c.approval.title||c.title||"Conversation approval",agent:c.approval.automatic?"Mcp":c.participants.join(", "),status:c.approval.status,comment:c.approval.comment||""})));
+  window.GridHome?.setConnectApprovals(state.chats.filter(c=>c.approval).map(c=>({id:approvalId(c),chatId:c.id,title:c.approval.title||c.title||"Conversation approval",agent:c.approval.automatic?"Mcp":c.participants.join(", "),mcpHold:!!c.approval.automatic||c.participants.includes("MCP"),status:c.approval.status,comment:c.approval.comment||""})));
   return true;
 }
 
@@ -1459,7 +1461,7 @@ function requestAutomaticApproval(){
   lastAutomaticScenario=index;
   saveState();
   renderChatList();
-  window.GridHome?.addNotice("Mcp · Approval requested",scenario.title,"connect-"+chat.id);
+  window.GridHome?.addNotice("Mcp · Approval requested",scenario.title,approvalId(chat));
   return true;
 }
 
@@ -1469,37 +1471,35 @@ function showApprovalExample() {
   if (!chat) return;
 
   if(chat.approval?.status==="pending"){showToast("An approval is already pending in this conversation.");return;}
-  chat.approval = { status: "pending" };
+  chat.approval = { id:"connect-"+chat.id+"-request-"+(++nextApprovalId),status:"pending",title:"Run a registered development test" };
   window.gridUiSound?.("approval");
 
   saveState();
   renderMessages();
 
   $("app").classList.remove("show-inspector");
-  showToast("Demonstration approval ready for review.");
+  if(window.GridHome)window.GridHome.addNotice((chat.participants.includes("MCP")?"Mcp":chat.participants.join(", "))+" · Approval requested",chat.approval.title,approvalId(chat));
+  else showToast("Demonstration approval ready for review.");
 }
 
-function updateApproval(status) {
-  const chat = currentChat();
-  if (!chat?.approval) return;
+function updateApproval(status,chat=currentChat(),comment=undefined) {
+  if (!chat?.approval) return false;
 
   if (chat.approval.status !== "pending" ||
-      !["approved", "rejected"].includes(status)) return;
+      !["approved", "rejected"].includes(status)) return false;
 
-  chat.approval.comment = (chat.approval.commentDraft || "").trim().slice(0, 500);
+  chat.approval.comment = String(comment??chat.approval.commentDraft??"").trim().slice(0, 500);
   delete chat.approval.commentDraft;
   chat.approval.status = status;
   window.gridUiSound?.(status === "approved" ? "approved" : "rejected");
   touchChat(chat);
 
   saveState();
-  renderMessages();
-
-  showToast(
-    status === "approved"
-      ? "Approved in demo. No operation executed."
-      : "Example request rejected."
-  );
+  if(currentChat()?.id===chat.id)renderMessages();
+  const result=status==="approved"?"Approved in demo. No operation executed.":"Rejected in demo. No operation executed.";
+  if(window.GridHome)window.GridHome.addNotice(chat.approval.title||"Approval decision",result,approvalId(chat));
+  else showToast(result);
+  return true;
 }
 
 /* EVENTS */

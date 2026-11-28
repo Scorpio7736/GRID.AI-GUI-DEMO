@@ -163,3 +163,19 @@ dialog{background:var(--surface);color:var(--text);border:1px solid #63512b;bord
 
 /* Global in-app desktop-style notification banners. */
 .notification-banners{position:fixed;right:20px;bottom:20px;z-index:80;width:min(360px,calc(100vw - 32px));display:flex;flex-direction:column;gap:9px;pointer-events:none}.notification-banner{pointer-events:auto;background:var(--surface);border:1px solid #63512b;border-left:3px solid var(--gold);border-radius:9px;box-shadow:0 8px 30px #000a;overflow:hidden;animation:banner-in .28s cubic-bezier(.22,.72,.25,1) both}.banner-top{display:flex;align-items:center;gap:8px;padding:9px 10px 4px;color:var(--muted);font:10px var(--mono);letter-spacing:.5px}.banner-top>span:nth-child(2){flex:1;min-width:0}.banner-icon{display:grid;place-items:center;color:var(--gold);width:24px;height:24px;background:var(--gold-bg);border-radius:5px;flex-shrink:0}.banner-icon svg{width:15px;height:15px}.banner-close{display:grid;place-items:center;width:26px;height:26px;border:0;border-radius:5px;background:transparent;color:var(--muted);font-size:20px;line-height:1}.banner-close:hover{background:var(--hover);color:var(--ivory)}.banner-body{display:grid;gap:5px;text-align:left;width:100%;padding:5px 13px 12px;background:transparent;border:0;color:var(--text)}.banner-body:hover{background:var(--surface2)}.banner-body strong{font-size:13px;color:var(--ivory);overflow-wrap:anywhere}.banner-body>span{font-size:12px;line-height:1.4;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.banner-body small{font-size:10px;color:var(--gold);margin-top:3px}.notification-announcer{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}@keyframes banner-in{from{opacity:0;transform:translate(20px,5px)}to{opacity:1;transform:none}}@media(max-width:520px){.notification-banners{right:12px;bottom:12px;width:calc(100vw - 24px)}}
+
+/* Approval hold is a distinct status, not background work. */
+.agent-row[data-activity="hold"] .presence,.agent-row[data-activity="hold"] .agent-status{color:#f07878}
+.agent-row[data-activity="hold"] .task-detail{color:#f07878}
+.notification-banner.approval-pending{border-color:#784649;border-left-color:#f07878}
+.notification-banner.approval-pending .banner-icon{color:#f07878;background:#352022}
+.notification-banner.approval-pending .banner-body small{color:#f07878}
+.notification-entry.approval-pending{border:1px solid #784649;border-radius:7px;background:var(--surface2);overflow:hidden}
+.notification-entry.approval-pending .notification-item{border:0;border-radius:0}
+.notification-approval-actions{display:flex;flex-wrap:wrap;gap:6px;padding:0 10px 10px;align-items:center}
+.notification-decision{border:1px solid var(--line);border-radius:5px;font:600 11px 'Segoe UI',sans-serif;padding:6px 8px;background:var(--surface);color:var(--ivory);white-space:nowrap}
+.notification-decision.approved{color:#63db9c;border-color:#426e52;background:#182b21}
+.notification-decision.rejected{color:#f07878;border-color:#784649;background:#352022}
+.notification-decision.open-conversation{color:var(--gold);flex:1;min-width:max-content}
+.notification-decision:hover{filter:brightness(1.25)}
+.notification-decision:focus-visible{outline:2px solid var(--gold);outline-offset:2px}

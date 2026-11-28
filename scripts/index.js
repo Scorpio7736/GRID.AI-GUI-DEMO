@@ -159,17 +159,41 @@
     const exit=card.animate([{opacity:1,transform:"translateX(0)"},{opacity:0,transform:"translateX(18px)"}],{duration:180,easing:"ease-in",fill:"forwards"});
     exit.finished.then(()=>card.remove(),()=>card.remove());
   }
+  function linkedApproval(n){return n.approval?approvals.find(a=>a.id===n.approval):null;}
+  function pendingNotice(n){return linkedApproval(n)?.status==="pending";}
+  function decideNotice(n,status){
+    if(!pendingNotice(n))return;
+    if(window.GridRouter?.decideApproval(n.approval,status)){
+      n.unread=false;dismissBanner(n.id);drawNotifications();
+    }else{drawNotifications();toast("This approval is no longer pending.");}
+  }
+  function approvalActions(n){
+    const group=document.createElement("div");group.className="notification-approval-actions";
+    group.setAttribute("role","group");group.setAttribute("aria-label","Approval actions");
+    for(const [status,label] of [["approved","Approve"],["rejected","Reject"]]){
+      const button=document.createElement("button");button.type="button";
+      button.className="notification-decision "+status;button.textContent=label;
+      button.addEventListener("click",()=>decideNotice(n,status));group.append(button);
+    }
+    const open=document.createElement("button");open.type="button";open.className="notification-decision open-conversation";
+    open.textContent="Open conversation";open.addEventListener("click",()=>openNotice(n));group.append(open);
+    return group;
+  }
+  function noticeDetail(n){
+    const approval=linkedApproval(n);
+    return n.detail+(approval&&approval.status!=="pending"&&!/approved|rejected/i.test(n.detail)?" · "+(approval.status==="approved"?"Approved":"Rejected"):"");
+  }
   function openNotice(n){
     n.unread=false;dismissBanner(n.id);drawNotifications();
     if(n.action){setNotifications(false);n.action();}
-    else if(n.approval){setNotifications(false);window.GridRouter.open("home",{attention:true,approval:n.approval});}
+    else if(n.approval){setNotifications(false);review(n.approval);}
     else setNotifications(true);
   }
   function showBanner(n){
     if(!window.GridSettings.get().notificationBanners)return;
     const stack=$("notificationBanners");
     while(activeBanners.size>=3)dismissBanner(activeBanners.keys().next().value,true);
-    const card=document.createElement("article");card.className="notification-banner";
+    const card=document.createElement("article");const pending=pendingNotice(n);card.className="notification-banner"+(pending?" approval-pending":"");
     const top=document.createElement("div");top.className="banner-top";
     const icon=document.createElement("span");icon.className="banner-icon";icon.setAttribute("aria-hidden","true");
     icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>';
@@ -179,11 +203,11 @@
     const body=document.createElement("button");body.type="button";body.className="banner-body";
     const title=document.createElement("strong");title.textContent=n.title;
     const detail=document.createElement("span");detail.textContent=n.detail;
-    const hint=document.createElement("small");hint.textContent=n.approval?"View approval →":n.action?"Open workspace →":"View notifications →";
-    body.append(title,detail,hint);card.append(top,body);stack.append(card);
+    const hint=document.createElement("small");hint.textContent=pending?"Awaiting your decision":n.approval?"View conversation →":n.action?"Open workspace →":"View notifications →";
+    body.append(title,detail,hint);card.append(top,body);if(pending)card.append(approvalActions(n));stack.append(card);
     const entry={card,timer:null};activeBanners.set(n.id,entry);
     const pause=()=>clearTimeout(entry.timer);
-    const resume=()=>{pause();if(!card.matches(":hover")&&!card.contains(document.activeElement))entry.timer=setTimeout(()=>dismissBanner(n.id),6500);};
+    const resume=()=>{pause();if(!card.matches(":hover")&&!card.contains(document.activeElement))entry.timer=setTimeout(()=>dismissBanner(n.id),pending?12000:6500);};
     card.addEventListener("pointerenter",pause);card.addEventListener("pointerleave",resume);
     card.addEventListener("focusin",pause);card.addEventListener("focusout",()=>queueMicrotask(resume));
     close.addEventListener("click",()=>dismissBanner(n.id));
@@ -193,7 +217,7 @@
   function addNotice(title,detail,approval=null,action=null){
     const n={id:"event-"+nextNotice++,title:String(title),detail:String(detail),approval,action,unread:true,time:Date.now()};
     notices.unshift(n);
-    if(notices.length>40)notices.length=40;
+    while(notices.length>40){const index=notices.findLastIndex(item=>!pendingNotice(item));if(index<0)break;const [removed]=notices.splice(index,1);dismissBanner(removed.id,true);}
     drawNotifications();
     $("notificationAnnouncer").textContent=n.title+": "+n.detail;
     if(window.GridSettings.get().notificationSounds)window.gridUiSound?.("notification");
@@ -208,18 +232,21 @@
     $("markNotificationsRead").disabled=!unread;
     const list=$("notificationList");
     list.replaceChildren(...notices.map(n=>{
+      const pending=pendingNotice(n);
+      const wrapper=document.createElement("div");wrapper.className="notification-entry"+(pending?" approval-pending":"");
       const item=document.createElement("button");
       item.type="button";item.className="notification-item"+(n.unread?" unread":"");
       const dot=document.createElement("i");dot.className="notification-dot";
       const content=document.createElement("span");
       const title=document.createElement("strong");title.textContent=n.title;
-      const detail=document.createElement("small");detail.textContent=n.detail;
+      const detail=document.createElement("small");detail.textContent=noticeDetail(n);
       const time=document.createElement("time");time.dateTime=new Date(n.time).toISOString();time.textContent=new Date(n.time).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
       content.append(title,detail,time);item.append(dot,content);
       item.addEventListener("click",()=>{
         openNotice(n);
       });
-      return item;
+      wrapper.append(item);if(pending)wrapper.append(approvalActions(n));
+      return wrapper;
     }));
   }
   function setNotifications(open,restoreFocus=false){
@@ -526,6 +553,7 @@
     const next=records.map(a=>({...a}));
     if(JSON.stringify(next)===JSON.stringify(approvals))return;
     approvals=next;
+    window.GridPresence.setApprovalCount(approvals.filter(a=>a.mcpHold&&a.status==="pending").length);
     const byId=new Map(approvals.map(a=>[a.id,a]));
     for(const notice of notices){
       if(!notice.approval)continue;
