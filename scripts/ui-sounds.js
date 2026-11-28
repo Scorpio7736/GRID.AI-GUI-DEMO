@@ -121,7 +121,12 @@
   }
 
   function play(name) {
-    if (!enabled || !context || context.state !== "running" || !cues[name]) return false;
+    if (!enabled || !context || !cues[name]) return false;
+    if (context.state === "suspended") {
+      context.resume().then(() => { if (enabled && context.state === "running") play(name); }).catch(() => {});
+      return true;
+    }
+    if (context.state !== "running") return false;
 
     const now = performance.now();
     // A join/leave/approval cue already communicates the event. Do not stack

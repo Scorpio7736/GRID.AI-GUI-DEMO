@@ -19,7 +19,7 @@
     approval: {icon: "◆", label: "APPROVAL"},
     action: {icon: "↗", label: "OUTPUT"}
   });
-  const state = {flow: null, selectedStepId: null, revision: 0, nextStepId: 1, pendingReply: false, runTimer: null, runToken: 0, savedWorkflows: [], folders: [], currentSavedId: null, dirty: false, searchQuery: "", folderFilter: "", sortMode: "updated", workspaceStatus: "working-with-user"};
+  const state = {flow: null, selectedStepId: null, revision: 0, nextStepId: 1, pendingReply: false, runTimer: null, runToken: 0, savedWorkflows: [], folders: [], currentSavedId: null, dirty: false, searchQuery: "", folderFilter: "", sortMode: "updated"};
   let toastTimer = null;
 
   function el(tag, className, text) {
@@ -45,10 +45,6 @@
   const FOLDER_STORAGE_KEY = "gridai-workflow-designer-folders-v1";
   const VIEW_STORAGE_KEY = "gridai-workflow-designer-view-v1";
   const MAX_WORKFLOW_FOLDERS = 12;
-  const WORKSPACE_STATUSES = Object.freeze({
-    "working-with-user": "Working with User",
-    designing: "Designing", reviewing: "Reviewing", "on-hold": "On hold"
-  });
 
   function readWorkflowLibrary() {
     try {
@@ -126,8 +122,6 @@
       state.sortMode = ["updated", "oldest", "name", "folder"].includes(v.sortMode) ?
         v.sortMode : "updated";
       state.folderFilter = typeof v.folderFilter === "string" ? v.folderFilter : "";
-      state.workspaceStatus = Object.hasOwn(WORKSPACE_STATUSES, v.workspaceStatus) ?
-        v.workspaceStatus : "working-with-user";
     } catch {
       // Storage may be disabled; use defaults.
     }
@@ -136,8 +130,7 @@
   function persistLibraryView() {
     try {
       window.localStorage.setItem(VIEW_STORAGE_KEY,
-        JSON.stringify({sortMode: state.sortMode, folderFilter: state.folderFilter,
-          workspaceStatus: state.workspaceStatus}));
+        JSON.stringify({sortMode: state.sortMode, folderFilter: state.folderFilter}));
     } catch {
       // The UI still works in-memory when browser storage is disabled.
     }
@@ -282,25 +275,11 @@
     notify("Moved “" + existing.name + "” to " + folderName(destination));
   }
 
-  function renderWorkspaceStatus() {
-    const value = Object.hasOwn(WORKSPACE_STATUSES, state.workspaceStatus) ?
-      state.workspaceStatus : "working-with-user";
-    $("workspaceStatusLabel").textContent = WORKSPACE_STATUSES[value];
-    $("workspaceStatusButton").dataset.status = value;
-    const count = state.savedWorkflows.filter(item => item.status === "active").length;
-    $("workspaceStatusDescription").textContent =
-      "Your status · " + count + " active preview" + (count === 1 ? "" : "s") +
-      " · no agents running";
-    $("workspaceStatusMenu").querySelectorAll("[data-workspace-status]").forEach(button => {
-      const current = button.dataset.workspaceStatus === value;
-      button.setAttribute("aria-pressed", String(current));
-      button.classList.toggle("is-current", current);
-    });
-  }
-
-  function closeWorkspaceStatus() {
-    $("workspaceStatusMenu").hidden = true;
-    $("workspaceStatusButton").setAttribute("aria-expanded", "false");
+  function renderMcpPresence() {
+    const busy=state.pendingReply;
+    $("mcpPresence").dataset.status=busy?"busy":"user";
+    $("mcpPresenceDot").classList.toggle("busy",busy);
+    $("mcpPresenceLabel").textContent=busy?"Drafting workflow…":"Working with User";
   }
 
   function cloneBlueprint(flow) {
@@ -363,7 +342,7 @@
 
   function drawWorkflowLibrary() {
     renderFolderControls();
-    renderWorkspaceStatus();
+    renderMcpPresence();
     const allActive = state.savedWorkflows.filter(item => item.status === "active");
     const allSaved = state.savedWorkflows.filter(item => item.status !== "active");
     const active = sortedWorkflows(allActive.filter(matchesLibraryView));
@@ -854,8 +833,10 @@
     const text = value.trim();
     if (!text || state.pendingReply) return;
     message("user", text);
+    window.gridUiSound?.("sent");
     $("mcpInput").value = "";
     state.pendingReply = true;
+    renderMcpPresence();
     $("sendMessage").disabled = true;
     const bubble = message("MCP", "Drafting a blueprint…");
     bubble.classList.add("pending-message");
@@ -863,8 +844,13 @@
       bubble.remove();
       try {
         replyTo(text);
+        window.gridUiSound?.("received");
+      } catch(error) {
+        window.gridUiSound?.("error");
+        throw error;
       } finally {
         state.pendingReply = false;
+        renderMcpPresence();
         $("sendMessage").disabled = false;
         $("mcpInput").focus({preventScroll: true});
       }
@@ -1023,30 +1009,6 @@
   });
   $("renameWorkflowFolder").addEventListener("click", renameCurrentWorkflowFolder);
   $("deleteWorkflowFolder").addEventListener("click", deleteCurrentWorkflowFolder);
-  $("workspaceStatusButton").addEventListener("click", () => {
-    const menu = $("workspaceStatusMenu");
-    menu.hidden = !menu.hidden;
-    $("workspaceStatusButton").setAttribute("aria-expanded", String(!menu.hidden));
-  });
-  $("workspaceStatusMenu").addEventListener("click", event => {
-    const button = event.target.closest("[data-workspace-status]");
-    if (!button) return;
-    state.workspaceStatus = button.dataset.workspaceStatus;
-    persistLibraryView();
-    renderWorkspaceStatus();
-    closeWorkspaceStatus();
-    $("workspaceStatusButton").focus();
-    notify("Your workspace status: " + WORKSPACE_STATUSES[state.workspaceStatus]);
-  });
-  document.addEventListener("click", event => {
-    if (!event.target.closest(".intro-stat")) closeWorkspaceStatus();
-  });
-  document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && !$("workspaceStatusMenu").hidden) {
-      closeWorkspaceStatus();
-      $("workspaceStatusButton").focus();
-    }
-  });
   $("resetFlow").addEventListener("click", () => {
     if (state.flow && state.dirty && !window.confirm("Discard unsaved changes and start a new draft?")) return;
     stopPreview();
@@ -1057,6 +1019,7 @@
     state.revision = 0;
     render();
     message("MCP", "New draft started. What should we automate next?");
+    window.gridUiSound?.("received");
     notify("New workflow draft ready");
   });
   $("skillUpload").addEventListener("change", async event => {

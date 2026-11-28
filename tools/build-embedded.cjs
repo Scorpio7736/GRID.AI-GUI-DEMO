@@ -29,6 +29,7 @@ const definitions={
       "workflow-designer"
     ],
     "scripts": [
+      "ui-sounds",
       "workflow-designer"
     ]
   }

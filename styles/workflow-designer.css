@@ -418,3 +418,16 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible,
 .compact-workspace-status .sr-only{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 .studio-topbar{z-index:35}
 @media(max-width:710px){.compact-workspace-status{padding-right:6px}.studio-grid{padding-top:12px}.studio-topbar .topbar-actions{flex-wrap:wrap}}
+
+/* Compact, read-only Mcp presence; the shell owns the page title. */
+.studio-topbar{height:44px;min-height:44px;flex:0 0 auto;justify-content:flex-end;padding-block:5px;gap:6px}
+.studio-topbar .topbar-actions{gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.studio-topbar .toolbar-button{min-height:30px}
+.studio-grid{padding-top:8px}
+.mcp-presence{font-size:10px;font-weight:600;color:var(--green);margin-top:4px;line-height:1.2}
+.mcp-presence[data-status="busy"]{color:var(--gold)}
+.mcp-avatar .avatar-online.busy{background:var(--gold)}
+.workflow-sound-toggle{border:1px solid var(--line);border-radius:6px;padding:5px 7px;background:var(--surface-soft);color:var(--muted);font-size:10px;white-space:nowrap;flex-shrink:0}
+.workflow-sound-toggle.enabled{color:var(--gold);border-color:#63512b}
+.workflow-sound-toggle:hover{border-color:var(--gold-dim)}
+@media(max-width:710px){.studio-topbar{height:auto;min-height:44px}.workflow-sound-toggle{font-size:9px;padding:5px}}

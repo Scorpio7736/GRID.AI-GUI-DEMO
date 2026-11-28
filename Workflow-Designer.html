@@ -77,20 +77,10 @@
 
   <main class="studio-main">
     <header class="studio-topbar">
-      <div class="breadcrumb"><span class="breadcrumb-brand">GRID.AI</span><span class="breadcrumb-divider">/</span><span>WORKFLOW DESIGNER</span></div>
+      
       <div class="topbar-actions">
-        <div class="intro-stat compact-workspace-status" aria-label="Your workspace status">
         
-        <button id="workspaceStatusButton" class="workspace-status-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="workspaceStatusMenu" title="Change your workspace status"><span class="status-dot"></span><span id="workspaceStatusLabel">Working with User</span><span class="workspace-status-chevron" aria-hidden="true">⌄</span></button>
-        <div id="workspaceStatusMenu" class="workspace-status-menu" hidden>
-          <button type="button" data-workspace-status="working-with-user">Working with User</button>
-          <button type="button" data-workspace-status="designing">Designing</button>
-          <button type="button" data-workspace-status="reviewing">Reviewing</button>
-          <button type="button" data-workspace-status="on-hold">On hold</button>
-        </div>
-        <small class="sr-only" id="workspaceStatusDescription">Your status · no agents running</small>
-      </div>
-        <span class="demo-pill"><span class="demo-pulse" aria-hidden="true"></span> UI DEMO</span>
+        
         <button class="toolbar-button" id="resetFlow" type="button" title="Start a new workflow">↺ <span>New draft</span></button>
         <button class="toolbar-button primary-action" id="saveWorkflow" type="button" title="Save the current blueprint in this browser" disabled>▣ <span>Save workflow</span></button>
         <button class="toolbar-button" id="exportJson" type="button" title="Download the workflow as JSON">⇩ <span>Export JSON</span></button>
@@ -161,9 +151,9 @@
 
       <aside class="mcp-panel" aria-label="Design chat with MCP">
         <div class="mcp-header">
-          <div class="mcp-avatar" aria-hidden="true"><img src="./Programs/Agents/MCP/MCP_HEADSHOT.png" alt="" decoding="async"><span class="avatar-online"></span></div>
-          <div class="mcp-header-copy"><div class="mcp-heading-line"><h2>Design with MCP</h2><span class="chat-demo-tag">SIMULATED</span></div><p>Master Control Program <span aria-hidden="true">·</span> Workflow coordinator</p></div>
-          <span class="header-spark" aria-hidden="true">✦</span>
+          <div class="mcp-avatar" aria-hidden="true"><img src="./Programs/Agents/MCP/MCP_HEADSHOT.png" alt="" decoding="async"><span class="avatar-online" id="mcpPresenceDot"></span></div>
+          <div class="mcp-header-copy"><div class="mcp-heading-line"><h2>Design with MCP</h2><span class="chat-demo-tag">SIMULATED</span></div><p>Master Control Program <span aria-hidden="true">·</span> Workflow coordinator</p><div class="mcp-presence" id="mcpPresence" data-status="user" role="status"><span id="mcpPresenceLabel">Working with User</span></div></div>
+          <button class="workflow-sound-toggle" id="soundToggle" type="button" aria-label="Mute interface sounds" aria-pressed="true">♫ Sounds ON</button>
         </div>
         <div class="chat-intro-note"><span>✧</span> Collaboration channel <span class="chat-rule"></span> CONCEPT MODE</div>
         <div class="mcp-messages" id="mcpMessages" role="log" aria-live="polite" aria-relevant="additions">
@@ -193,6 +183,7 @@
   </main>
 </div>
 <div class="toast" id="studioToast" role="status" aria-live="polite"></div>
+<script src="./scripts/ui-sounds.js" defer></script>
 <script src="./scripts/workflow-designer.js" defer></script>
 </body>
 </html>

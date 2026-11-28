@@ -20,3 +20,10 @@ html,body{height:100%;overflow:hidden}
 .grid-page .dashboard{min-height:100%}
 .grid-page[aria-busy="true"]{pointer-events:none}
 @media(prefers-reduced-motion:reduce){.home-nav .nav-indicator{transition:none!important}}
+
+/* Keep global controls, but minimize duplicate page chrome. */
+.home-topbar{height:48px;min-height:48px;padding-block:0}
+.home-topbar .breadcrumb{display:none}
+.home-topbar .notification-panel{top:44px}
+@media(max-width:980px){.home-sidebar{top:48px}}
+@media(min-width:981px) and (hover:none), (min-width:981px) and (pointer:coarse){.home-sidebar{top:48px}}
