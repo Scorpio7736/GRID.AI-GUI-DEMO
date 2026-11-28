@@ -1,0 +1,22 @@
+/* Persistent native application shell. App-specific CSS is isolated in shadow roots. */
+html,body{height:100%;overflow:hidden}
+.home-shell{height:100dvh;min-height:0}
+.home-main{display:flex;flex-direction:column;height:100dvh;min-height:0;overflow:hidden}
+.home-topbar{flex-shrink:0;position:relative;z-index:30}
+.breadcrumb .workspace-name{color:var(--ivory);padding:0}
+.grid-workspace{position:relative;flex:1;min-height:0;min-width:0;overflow:hidden}
+.grid-page{height:100%;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain}
+.grid-page.app-view{overflow:hidden}
+.grid-app-host{width:100%;height:100%;display:block}
+.planned-view{background:radial-gradient(ellipse at center,#171e2660,transparent 70%);}
+.planned-content{min-height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:30px;gap:12px}
+.planned-content h1{margin:0;color:var(--ivory);font-size:clamp(24px,4vw,36px)}
+.planned-content>p:not(.eyebrow){color:var(--muted);max-width:450px;margin:0 0 10px}
+.planned-icon{width:65px;height:65px;display:grid;place-items:center;color:var(--gold);font-size:37px;border:1px solid #63512b;border-radius:12px;background:var(--gold-bg)}
+.home-sidebar{z-index:40}
+.home-nav{position:relative}
+.home-nav .nav-indicator{position:absolute;left:8px;width:2px;height:20px;top:0;background:var(--gold);border-radius:2px;pointer-events:none;transition:transform .24s ease;height:20px;z-index:2}
+.home-nav .nav-item.current:before{display:none}
+.grid-page .dashboard{min-height:100%}
+.grid-page[aria-busy="true"]{pointer-events:none}
+@media(prefers-reduced-motion:reduce){.home-nav .nav-indicator{transition:none!important}}

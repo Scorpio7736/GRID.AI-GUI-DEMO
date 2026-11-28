@@ -10,7 +10,7 @@
   let selectedApproval = null, toastTimer;
   const reducedMotion=matchMedia("(prefers-reduced-motion: reduce)");
   const notices=approvals.map(a=>({id:"approval-"+a.id,title:a.title,detail:a.agent+" · Approval requested",approval:a.id,unread:true,time:Date.now()}));
-  let nextNotice=1, navigating=false;
+  let nextNotice=1;
   const animations=new WeakMap();
   const dialog = $("homeDialog");
   const arrow = "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h15m-6-6 6 6-6 6\"/></svg>";
@@ -81,8 +81,7 @@
     toast((status==="approved"?"Approved":"Rejected")+" in demo. No operation executed.");
   }
   function openConnect(agent) {
-    const hash=new URLSearchParams({agent});
-    navigate("./Chat.html#"+hash.toString());
+    window.GridRouter.open("connect",{agent});
   }
   function showAgents(expanded) {
     $("expandAgents").setAttribute("aria-expanded",String(expanded));
@@ -106,7 +105,7 @@
   });
   document.addEventListener("click",event=>{
     const link=event.target.closest("a[href]");
-    if(link&&!event.defaultPrevented&&event.button===0&&!event.ctrlKey&&!event.metaKey&&!event.shiftKey&&!event.altKey&&!link.hasAttribute("download")&&(!link.target||link.target==="_self")&&/^\.\/(?:Chat|Workflow-Designer)\.html$/.test(link.getAttribute("href"))){event.preventDefault();navigate(link.getAttribute("href"));return;}
+
     if(!$("notificationPanel").contains(event.target)&&!$("notificationButton").contains(event.target))setNotifications(false);
     const button=event.target.closest("[data-preview],[data-approval],[data-agent],[data-panel]");
     if(button?.dataset.panel) openPanel(button.dataset.panel);
@@ -121,7 +120,7 @@
   $("notificationButton").addEventListener("click",()=>setNotifications($("notificationButton").getAttribute("aria-expanded")!=="true"));
   $("closeNotifications").addEventListener("click",()=>setNotifications(false,true));
   $("markNotificationsRead").addEventListener("click",()=>{notices.forEach(n=>n.unread=false);drawNotifications();});
-  $("notificationApprovals").addEventListener("click",()=>{setNotifications(false);showAttention();});
+  $("notificationApprovals").addEventListener("click",()=>{setNotifications(false);window.GridRouter.open("home",{attention:true});});
   $("approveApproval").addEventListener("click",()=>decide("approved"));
   $("rejectApproval").addEventListener("click",()=>decide("rejected"));
   dialog.addEventListener("close",()=>{selectedApproval=null;});
@@ -152,25 +151,8 @@
       animation.cancel();animations.delete(element);
     };
   }
-  /* Page exit is used for same-tab application launches, not external or modified clicks. */
-  function navigate(href){
-    if(navigating)return;
-    navigating=true;
-    const go=()=>{location.href=href;};
-    const shell=document.querySelector(".home-shell");
-    if(reducedMotion.matches||typeof shell.animate!=="function"){go();return;}
-    const animation=shell.animate([{opacity:1,transform:"translateY(0)"},{opacity:0,transform:"translateY(-5px)"}],{duration:230,easing:"ease-in",fill:"forwards"});
-    let finished=false;
-    const finish=()=>{if(finished)return;finished=true;go();};
-    animation.onfinish=finish;
-    setTimeout(finish,330);
-  }
-  window.addEventListener("pageshow",event=>{
-    navigating=false;
-    if(event.persisted)document.querySelector(".home-shell").getAnimations().forEach(a=>a.cancel());
-  });
-  function addNotice(title,detail,approval=null){
-    notices.unshift({id:"event-"+nextNotice++,title,detail,approval,unread:true,time:Date.now()});
+  function addNotice(title,detail,approval=null,action=null){
+    notices.unshift({id:"event-"+nextNotice++,title,detail,approval,action,unread:true,time:Date.now()});
     if(notices.length>40)notices.length=40;
     drawNotifications();
   }
@@ -193,7 +175,8 @@
       content.append(title,detail,time);item.append(dot,content);
       item.addEventListener("click",()=>{
         n.unread=false;drawNotifications();
-        if(n.approval){setNotifications(false);review(n.approval);}
+        if(n.action){setNotifications(false);n.action();}
+        else if(n.approval){setNotifications(false);window.GridRouter.open("home",{attention:true,approval:n.approval});}
         else{setNotifications(false,true);toast(n.detail);}
       });
       return item;
@@ -354,14 +337,19 @@
     const status=row.querySelector(".agent-status");
     const task=row.querySelector(".agent-task");
     const dot=row.querySelector(".portrait .presence");
-    const mode=working?"background":"available";
+    const connected=window.GridRouter?.presence?.()?.[row.dataset.agent];
+    const mode=connected&&connected!=="available"?connected:working?"background":"available";
+    working=mode!=="available";
     row.dataset.activity=mode;
     status.className="agent-status "+mode;
     const mark=document.createElement("i");
-    status.replaceChildren(mark,document.createTextNode(working?"Working in background":"Available"));
+    status.replaceChildren(mark,document.createTextNode(({user:"Working with user",both:"Working with user and agents",agents:"Working with agents",background:"Working in background",available:"Available"})[mode]));
     dot.className="presence "+mode;
     const options=agentTasks[row.dataset.agent];
-    if(working){
+    if(connected&&connected!=="available"){
+      task.querySelector(".task-title").textContent="Active Connect session";
+      task.querySelector(".task-detail").textContent="Conversation or delegated activity · Demo";
+    }else if(working){
       const item=options[taskIndex%options.length];
       task.querySelector(".task-title").textContent=item[0];
       task.querySelector(".task-detail").textContent=item[1].replace("{n}",String(2+Math.floor(Math.random()*17)))+" · Demo";
@@ -510,6 +498,7 @@
     pendingDelete=null;const saved=saveSystems();drawSystems();$("addSystemForm").reset();$("systemName").focus();toast("Demo system added."+(saved?"":" Changes could not be saved in this browser."));addNotice("System added",name+" · Demo inventory");
   });
   drawSystems();
+  window.GridHome={openPanel,showAttention,review,addNotice,setNav,setNotifications};
   function openPanel(key){
     const resource=key==="system";
     if(resource)setResourceDetails(true);else setConnections(true);
