@@ -1,0 +1,31 @@
+/* GRID.AI shared visual tokens. Gold is authority; status colors describe activity. */
+:root {
+  color-scheme: dark;
+  --bg: #080a0d;
+  --sidebar: #0d1015;
+  --surface: #11161c;
+  --surface2: #171e26;
+  --hover: #202934;
+  --line: #2a333e;
+  --gold: #f4cb54;
+  --gold-dim: #bd9940;
+  --gold-bg: #312818;
+  --ivory: #f5f1e5;
+  --text: #d8dde3;
+  --muted: #8793a1;
+  --cyan: #59d8f3;
+  --green: #63db9c;
+  --red: #f07878;
+  --purple: #9476e8;
+  --orange: #f09866;
+  --font: "Segoe UI", Arial, sans-serif;
+  --mono: Consolas, "Courier New", monospace;
+}
+.grid-home-link {
+  display:flex; align-items:center; gap:8px; flex-shrink:0;
+  padding:9px 12px; border:1px solid var(--line); border-radius:7px;
+  color:var(--gold); background:var(--surface); text-decoration:none;
+  font:11px var(--font);
+}
+.grid-home-link:hover { background:var(--gold-bg); border-color:var(--gold-dim); }
+.grid-home-link:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
