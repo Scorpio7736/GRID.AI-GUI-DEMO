@@ -409,3 +409,12 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible,
 }
 
 .workspace-status-button[data-status="working-with-user"] .status-dot{background:var(--green)}
+
+/* Compact toolbar; no promotional introduction above the workspace. */
+.studio-grid{padding-top:14px}
+.compact-workspace-status{position:relative;display:block;flex:0 0 auto;min-width:0;max-width:none;padding:0 12px 0 0;border:0;border-right:1px solid var(--line);align-self:center}
+.compact-workspace-status .workspace-status-button{min-height:32px;font-size:11px;white-space:nowrap;margin:0}
+.compact-workspace-status .workspace-status-menu{top:calc(100% + 6px);right:0;left:auto;min-width:178px;z-index:60}
+.compact-workspace-status .sr-only{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.studio-topbar{z-index:35}
+@media(max-width:710px){.compact-workspace-status{padding-right:6px}.studio-grid{padding-top:12px}.studio-topbar .topbar-actions{flex-wrap:wrap}}

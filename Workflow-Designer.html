@@ -79,21 +79,8 @@
     <header class="studio-topbar">
       <div class="breadcrumb"><span class="breadcrumb-brand">GRID.AI</span><span class="breadcrumb-divider">/</span><span>WORKFLOW DESIGNER</span></div>
       <div class="topbar-actions">
-        <span class="demo-pill"><span class="demo-pulse" aria-hidden="true"></span> UI DEMO</span>
-        <button class="toolbar-button" id="resetFlow" type="button" title="Start a new workflow">↺ <span>New draft</span></button>
-        <button class="toolbar-button primary-action" id="saveWorkflow" type="button" title="Save the current blueprint in this browser" disabled>▣ <span>Save workflow</span></button>
-        <button class="toolbar-button" id="exportJson" type="button" title="Download the workflow as JSON">⇩ <span>Export JSON</span></button>
-      </div>
-    </header>
-
-    <section class="studio-intro" aria-labelledby="pageTitle">
-      <div class="intro-copy">
-        <div class="eyebrow"><span class="eyebrow-line"></span> THE WORKFLOW STUDIO <span class="eyebrow-tag">BETA CONCEPT</span></div>
-        <h1 id="pageTitle">From idea to <em>execution plan.</em></h1>
-        <p>Design intelligent automations alongside MCP. Describe the goal in conversation, then refine the agents and steps in your workflow blueprint.</p>
-      </div>
-      <div class="intro-stat" aria-label="Your workspace status">
-        <span>WORKSPACE STATUS</span>
+        <div class="intro-stat compact-workspace-status" aria-label="Your workspace status">
+        
         <button id="workspaceStatusButton" class="workspace-status-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="workspaceStatusMenu" title="Change your workspace status"><span class="status-dot"></span><span id="workspaceStatusLabel">Working with User</span><span class="workspace-status-chevron" aria-hidden="true">⌄</span></button>
         <div id="workspaceStatusMenu" class="workspace-status-menu" hidden>
           <button type="button" data-workspace-status="working-with-user">Working with User</button>
@@ -101,9 +88,16 @@
           <button type="button" data-workspace-status="reviewing">Reviewing</button>
           <button type="button" data-workspace-status="on-hold">On hold</button>
         </div>
-        <small id="workspaceStatusDescription">Your status · no agents running</small>
+        <small class="sr-only" id="workspaceStatusDescription">Your status · no agents running</small>
       </div>
-    </section>
+        <span class="demo-pill"><span class="demo-pulse" aria-hidden="true"></span> UI DEMO</span>
+        <button class="toolbar-button" id="resetFlow" type="button" title="Start a new workflow">↺ <span>New draft</span></button>
+        <button class="toolbar-button primary-action" id="saveWorkflow" type="button" title="Save the current blueprint in this browser" disabled>▣ <span>Save workflow</span></button>
+        <button class="toolbar-button" id="exportJson" type="button" title="Download the workflow as JSON">⇩ <span>Export JSON</span></button>
+      </div>
+    </header>
+
+    
 
     <div class="studio-grid">
       <section class="blueprint-panel" aria-label="Generated workflow blueprint">

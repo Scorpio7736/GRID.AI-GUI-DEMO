@@ -36,11 +36,21 @@ const definitions={
 function build(name,def,read){
   let html=read(def.html).match(/<body\b[^>]*>([\s\S]*?)<\/body>/i)[1].replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,"").replace(/<a class="grid-home-link"[^>]*>[\s\S]*?<\/a>/gi,"");
   let css=def.styles.map(x=>read("styles/"+x+".css")).join("\n").replace(/:root(?=\s*\{)/g,":host").replace(/(^|\n)([ \t]*)html\s*,\s*body(?=\s*\{)/g,"$1$2.embedded-document").replace(/(^|\n)([ \t]*)body(?=\s*\{)/g,"$1$2.embedded-document").replace(/@media\s*(?=\(\s*(?:min|max)-width\s*:)/g,"@container grid-workspace ").replace(/(\d+(?:\.\d+)?)d?vh\b/g,"$1cqh").replace(/(\d+(?:\.\d+)?)d?vw\b/g,"$1cqw");
-  css+="\n:host{display:block;width:100%;height:100%;container:grid-workspace / size;contain:layout paint;position:relative;background:var(--bg);color:var(--text);font:14px 'Segoe UI',Arial,sans-serif}.embedded-document{height:100%;width:100%;min-height:0;position:relative;overflow:auto}.embedded-document .brand,.embedded-document .studio-brand{display:none}.embedded-document .sidebar-bottom,.embedded-document .sidebar-operator{display:none}";
+  css+="\n:host{display:block;width:100%;height:100%;container:grid-workspace / size;contain:layout paint;position:relative;background:var(--bg);color:var(--text);font:14px 'Segoe UI',Arial,sans-serif}.embedded-document{height:100%;width:100%;min-height:0;position:relative;overflow:auto}";
   if(name==="connect")css+="\n.embedded-document>.app{height:100%;min-height:0}.embedded-document{overflow:hidden}";
-  else css+="\n.embedded-document .designer-shell{min-height:100%}@container grid-workspace (min-width:1051px){.embedded-document .designer-shell,.embedded-document .studio-main,.embedded-document .studio-sidebar{height:100%;min-height:0}}";
+  else css+="\n.embedded-document .studio-brand,.embedded-document .sidebar-operator{display:none}.embedded-document .designer-shell{min-height:100%}@container grid-workspace (min-width:1051px){.embedded-document .designer-shell,.embedded-document .studio-main,.embedded-document .studio-sidebar{height:100%;min-height:0}}";
+  css+="\n[hidden]{display:none!important}.embedded-document{isolation:isolate}";
   let sources=def.scripts.map(x=>{
     let s=read("scripts/"+x+".js");
+    if(x==="chat"){
+      const startup="syncMotionControls();\nrenderAgentList();\nrender();\nsyncInspectorControls();\nshowFirstChatEntrance();";
+      if(!s.includes(startup))throw Error("Connect startup changed; update embedded generator.");
+      s=s.replace(startup,"/* Startup deferred until agent-ui lexical state is initialized. */");
+    }
+    if(x==="agent-ui"){
+      if(!s.trimEnd().endsWith("render();"))throw Error("Agent UI startup changed; update embedded generator.");
+      s=s.trimEnd().slice(0,-"render();".length)+"syncMotionControls();\nrenderAgentList();\nrender();\nsyncInspectorControls();\nshowFirstChatEntrance();"+"\n";
+    }
     if(x==="workspace-ui")s=s.replace("resizeFromPointer(event.clientX);","resizeFromPointer(event.clientX - host.getBoundingClientRect().left);");
     if(x==="chat")s=s.replace("function showToast(message) {","function showToast(message) {\n  bridge.notice('Connect',message,currentChat()?.id ?? null);");
     if(x==="workflow-designer")s=s.replace("function notify(text) {","function notify(text) {\n    bridge.notice('Workflow Designer',text);");

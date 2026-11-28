@@ -8,7 +8,7 @@
     "command-center":["Command Center","planned","Monitor agent activity, delegation and tasks."],
     projects:["Project Manager","planned","Manage project repositories, teams and objectives."],
     agents:["Agent Directory","planned","Configure agent identities, skills, models and permissions."],
-    integrations:["Integrations","home"],"system-monitor":["System Monitor","home"],
+    integrations:["Integrations","planned","Yet to be added."],"system-monitor":["System Monitor","planned","Yet to be added."],
     settings:["Settings","planned","Configure preferences, permissions and system policies."]
   };
   const motion=matchMedia("(prefers-reduced-motion: reduce)");
@@ -34,7 +34,8 @@
     if(instances.has(name))return instances.get(name);
     const source=window.GridEmbedded[name],host=$(name==="connect"?"connectHost":"workflowHost");
     if(!source)throw Error("Missing workspace "+name);
-    const root=host.attachShadow({mode:"open"});
+    const root=host.shadowRoot||host.attachShadow({mode:"open"});
+    root.replaceChildren();
     const sheet=document.createElement("style");sheet.textContent=source.css;
     const body=document.createElement("div");body.className="embedded-document";body.innerHTML=source.markup;
     root.append(sheet,body);
@@ -93,7 +94,7 @@
     }
     if(token!==revision)return;
     pages.forEach(p=>{p.hidden=p!==next;p.inert=p!==next;});
-    if(config[route][1]==="planned"){$("plannedTitle").textContent=config[route][0];$("plannedDescription").textContent=config[route][2]+" This workspace is not yet implemented.";}
+    if(config[route][1]==="planned"){$("plannedTitle").textContent=config[route][0];$("plannedDescription").textContent=config[route][2]==="Yet to be added."?config[route][2]:config[route][2]+" This workspace is not yet implemented.";}
     active=route;
     if(route==="connect"||route==="workflow-designer"){
       try{
@@ -108,9 +109,7 @@
         const target=host.shadowRoot||host;const failure=document.createElement("p");failure.textContent="Unable to initialize this demo workspace. Refresh to retry.";failure.style.cssText="padding:24px;color:#f07878";target.append(failure);
       }
     }
-    if(route==="integrations"||route==="system-monitor"){
-      requestAnimationFrame(()=>{if(token===revision)window.GridHome.openPanel(route==="integrations"?"connections":"system");});
-    }else if(route==="home"&&(params.attention||params.approval)){
+    if(route==="home"&&(params.attention||params.approval)){
       requestAnimationFrame(()=>{if(token!==revision)return;window.GridHome.showAttention();if(params.approval)window.GridHome.review(params.approval);});
     }
     if(previous!==next){
