@@ -277,11 +277,17 @@
     notify("Moved “" + existing.name + "” to " + folderName(destination));
   }
 
+  function syncMcpSharedPresence(){
+    const status=window.GridPresence?.get("MCP");
+    const mode=status?.mode||(state.pendingReply?"background":"user");
+    $("mcpPresence").dataset.status=mode;
+    $("mcpPresenceDot").dataset.status=mode;
+    $("mcpPresenceDot").classList.toggle("busy",mode==="background");
+    $("mcpPresenceLabel").textContent=status?.label||(state.pendingReply?(draftJob?.stage||"Drafting workflow…"):"Working with User");
+  }
   function renderMcpPresence() {
-    const busy=state.pendingReply;
-    $("mcpPresence").dataset.status=busy?"busy":"user";
-    $("mcpPresenceDot").classList.toggle("busy",busy);
-    $("mcpPresenceLabel").textContent=busy?(draftJob?.stage||"Drafting workflow…"):"Working with User";
+    window.GridPresence?.setWorkflow(state.pendingReply,draftJob?.stage);
+    syncMcpSharedPresence();
   }
 
   function cloneBlueprint(flow) {
@@ -1169,6 +1175,7 @@
     commitRevision();
     notify("Step removed from draft");
   });
+  window.GridPresence?.subscribe((snapshot,changed)=>{if(changed.includes("MCP"))syncMcpSharedPresence();});
   state.folders = readWorkflowFolders();
   loadLibraryView();
   state.savedWorkflows = readWorkflowLibrary();

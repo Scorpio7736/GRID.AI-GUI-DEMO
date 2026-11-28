@@ -387,3 +387,6 @@
 .header-participant {cursor:pointer;}
 .header-participant .agent-portrait,.header-participant .agent-portrait img {pointer-events:none;}
 .agent-item {padding-right:7px;}
+
+/* Match Home's gold background-work status palette. */
+.presence-background{background:#f4cb54}

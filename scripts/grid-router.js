@@ -101,6 +101,7 @@
     pages.forEach(p=>{p.hidden=p!==next;p.inert=p!==next;});
     if(config[route][1]==="planned"){$("plannedTitle").textContent=config[route][0];$("plannedDescription").textContent=config[route][2]==="Yet to be added."?config[route][2]:config[route][2]+" This workspace is not yet implemented.";}
     active=route;
+    window.GridPresence.setRoute(route);
     if(route==="connect"||route==="workflow-designer"){
       try{
         const instance=mount(route);
@@ -131,7 +132,7 @@
     if(location.hash!==hash)history.pushState(null,"",hash);
     return apply(route,params);
   }
-  window.GridRouter={open,presence:()=>instances.get("connect")?.api.presence?.()||{}};
+  window.GridRouter={open,presence:()=>Object.fromEntries(Object.entries(window.GridPresence.snapshot()).map(([agent,record])=>[agent,record.mode]))};
   document.addEventListener("click",event=>{
     const link=event.target.closest?.("a[data-route]");
     if(!link||event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||event.altKey||event.shiftKey)return;

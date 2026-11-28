@@ -34,7 +34,25 @@ function agentUiPendingChanged(chatId, agent, change) {
   renderInspector();
 }
 
+function agentUiPublishPresence(){
+  if(!window.GridPresence)return;
+  const selected={},pending={},live={},chat=currentChat();
+  if(chat)for(const agent of chat.participants)selected[agent]=chat.type==="meeting"?"both":"user";
+  if(openWhisperSession?.chatId===chat?.id&&openWhisperSession?.agent)selected[openWhisperSession.agent]="user";
+  for(const c of state.chats){
+    if(c.liveMeeting&&c.type==="meeting")for(const agent of c.participants)live[agent]=true;
+  }
+  for(const [key,count] of agentUiPending){
+    if(count<=0)continue;
+    const [id,agent]=key.split(":");
+    const c=findChat(Number(id));if(!c||!c.participants.includes(agent))continue;
+    if(c.type==="meeting")for(const participant of c.participants)pending[participant]="agents";
+    else if(pending[agent]!=="agents")pending[agent]="background";
+  }
+  window.GridPresence.setConnect({selected,pending,live});
+}
 function agentUiStatus(agent) {
+  if(window.GridPresence)return window.GridPresence.get(agent).mode;
   const chat = currentChat();
   if (openWhisperSession?.agent === agent &&
       openWhisperSession.chatId === chat?.id) {
@@ -62,6 +80,7 @@ function agentUiStatus(agent) {
 }
 
 function agentUiStatusLabel(agent) {
+  if(window.GridPresence)return window.GridPresence.get(agent).label;
   return AGENT_UI_STATUSES.find(item => item.id === agentUiStatus(agent)).label;
 }
 
@@ -71,12 +90,13 @@ function agentUiPortrait(agent, presence = false) {
     ? `<img src="${file}" alt="" loading="lazy">`
     : `<span class="portrait-initials">${iconText(agent)}</span>`;
   const dot = presence
-    ? `<span class="presence-dot presence-${agentUiStatus(agent)}" aria-hidden="true"></span>`
+    ? `<span class="presence-dot presence-${agentUiStatus(agent)}" data-grid-presence-agent="${agent}" aria-hidden="true"></span>`
     : "";
   return `<span class="agent-portrait">${face}${dot}</span>`;
 }
 
 renderAgentList = function renderAgentListWithPortraits() {
+  agentUiPublishPresence();
   $("agentList").innerHTML = ORDER.map(agent => `
     <div class="agent-row-wrap">
       <div class="agent-item">
@@ -86,7 +106,7 @@ renderAgentList = function renderAgentListWithPortraits() {
           <div class="item-content">
             <div class="item-title">${agent}</div>
             <div class="agent-role">${escapeHtml(AGENTS[agent].role)}</div>
-            <div class="agent-presence-label">${escapeHtml(agentUiStatusLabel(agent))}</div>
+            <div class="agent-presence-label" data-grid-presence-label="${agent}">${escapeHtml(agentUiStatusLabel(agent))}</div>
           </div>
         </button>
       </div>
@@ -132,8 +152,8 @@ function agentUiRenderParticipants() {
         <strong>${agent}</strong>
         <small>${escapeHtml(AGENTS[agent].role)}</small>
         <div class="popup-presence">
-          <span class="presence-dot presence-${agentUiStatus(agent)}" aria-hidden="true"></span>
-          ${escapeHtml(agentUiStatusLabel(agent))}
+          <span class="presence-dot presence-${agentUiStatus(agent)}" data-grid-presence-agent="${agent}" aria-hidden="true"></span>
+          <span data-grid-presence-label="${agent}">${escapeHtml(agentUiStatusLabel(agent))}</span>
         </div>
       </div>
     </div>
@@ -242,6 +262,7 @@ function agentUiEnhanceInspector() {
     if (sub) {
       const label = document.createElement("div");
       label.className = "participant-status-label";
+      label.dataset.gridPresenceLabel=agent;
       label.textContent = agentUiStatusLabel(agent) + " · Demo";
       sub.after(label);
     }
@@ -255,12 +276,13 @@ function agentUiEnhanceAgentModal() {
     const oldIcon = row.querySelector(".agent-icon");
     if (oldIcon) oldIcon.outerHTML = agentUiPortrait(input.value, true);
     const sub = row.querySelector("small");
-    if (sub) sub.textContent += " · " + agentUiStatusLabel(input.value);
+    if (sub) { const label=document.createElement("span");label.dataset.gridPresenceLabel=input.value;label.textContent=agentUiStatusLabel(input.value);sub.append(document.createTextNode(" · "),label); }
   });
 }
 
 const agentUiOldChatList = renderChatList;
 renderChatList = function () {
+  agentUiPublishPresence();
   agentUiOldChatList();
   agentUiEnhanceChatList();
 };
@@ -700,4 +722,22 @@ document.addEventListener("click", event => {
   }
 });
 
+// Update presence in place: never rebuild conversations, menus or typing text
+// when the Home background simulation or another workspace changes status.
+window.GridPresence?.subscribe((snapshot,changed)=>{
+  for(const node of document.querySelectorAll("[data-grid-presence-agent]")){
+    const agent=node.dataset.gridPresenceAgent;if(!changed.includes(agent))continue;
+    for(const item of AGENT_UI_STATUSES)node.classList.remove("presence-"+item.id);
+    node.classList.add("presence-"+snapshot[agent].mode);
+  }
+  for(const node of document.querySelectorAll("[data-grid-presence-label]")){
+    const agent=node.dataset.gridPresenceLabel;if(!changed.includes(agent))continue;
+    node.textContent=snapshot[agent].label+(node.classList.contains("participant-status-label")?" · Demo":"");
+  }
+  for(const node of document.querySelectorAll("[data-portrait-agent]")){
+    const agent=node.dataset.portraitAgent;if(!changed.includes(agent))continue;
+    node.title=agent+" · "+snapshot[agent].label;
+    node.setAttribute("aria-label","Options for "+agent+": "+snapshot[agent].label);
+  }
+});
 render();

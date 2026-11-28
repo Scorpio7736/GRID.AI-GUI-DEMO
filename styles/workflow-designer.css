@@ -455,3 +455,7 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible,
 .blueprint-actions .toolbar-button:disabled{cursor:not-allowed}
 .studio-grid{padding-top:8px}
 @media(max-width:710px){.blueprint-actions{flex:1 1 100%;justify-content:flex-start;margin-left:0}}
+
+/* Shared agent presence colors, aligned with Home and Connect. */
+.mcp-presence[data-status="available"]{color:#63db9c}.mcp-presence[data-status="background"],.mcp-presence[data-status="user"]{color:#f4cb54}.mcp-presence[data-status="agents"]{color:#9476e8}.mcp-presence[data-status="both"]{color:#f09866}
+.mcp-avatar .avatar-online[data-status="available"]{background:#63db9c}.mcp-avatar .avatar-online[data-status="background"],.mcp-avatar .avatar-online[data-status="user"]{background:#f4cb54}.mcp-avatar .avatar-online[data-status="agents"]{background:#9476e8}.mcp-avatar .avatar-online[data-status="both"]{background:#f09866}

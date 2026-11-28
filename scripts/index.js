@@ -376,30 +376,23 @@
     const available=agentRows.filter(row=>row.dataset.activity==="available").length;
     $("agentMetricSummary").textContent=available+" available · "+(agentRows.length-available)+" working";
   }
+  function renderAgentPresence(row,record){
+    const status=row.querySelector(".agent-status"),task=row.querySelector(".agent-task"),dot=row.querySelector(".portrait .presence");
+    row.dataset.activity=record.mode;
+    status.className="agent-status "+record.mode;
+    status.replaceChildren(document.createElement("i"),document.createTextNode(record.label));
+    dot.className="presence "+record.mode;
+    task.querySelector(".task-title").textContent=record.task;
+    task.querySelector(".task-detail").textContent=record.detail;
+  }
+  window.GridPresence.subscribe((snapshot,changed)=>{
+    for(const row of agentRows)if(changed.includes(row.dataset.agent))renderAgentPresence(row,snapshot[row.dataset.agent]);
+    updateAgentSummary();
+  });
   function setAgentActivity(row,working,taskIndex){
-    const status=row.querySelector(".agent-status");
-    const task=row.querySelector(".agent-task");
-    const dot=row.querySelector(".portrait .presence");
-    const connected=window.GridRouter?.presence?.()?.[row.dataset.agent];
-    const mode=connected&&connected!=="available"?connected:working?"background":"available";
-    working=mode!=="available";
-    row.dataset.activity=mode;
-    status.className="agent-status "+mode;
-    const mark=document.createElement("i");
-    status.replaceChildren(mark,document.createTextNode(({user:"Working with user",both:"Working with user and agents",agents:"Working with agents",background:"Working in background",available:"Available"})[mode]));
-    dot.className="presence "+mode;
-    const options=agentTasks[row.dataset.agent];
-    if(connected&&connected!=="available"){
-      task.querySelector(".task-title").textContent="Active Connect session";
-      task.querySelector(".task-detail").textContent="Conversation or delegated activity · Demo";
-    }else if(working){
-      const item=options[taskIndex%options.length];
-      task.querySelector(".task-title").textContent=item[0];
-      task.querySelector(".task-detail").textContent=item[1].replace("{n}",String(2+Math.floor(Math.random()*17)))+" · Demo";
-    }else{
-      task.querySelector(".task-title").textContent="Awaiting assignment";
-      task.querySelector(".task-detail").textContent="Ready for the next task";
-    }
+    const item=agentTasks[row.dataset.agent][taskIndex%agentTasks[row.dataset.agent].length];
+    window.GridPresence.setBaseline(row.dataset.agent,working,item[0],item[1].replace("{n}",String(2+Math.floor(Math.random()*17)))+" · Demo");
+    renderAgentPresence(row,window.GridPresence.get(row.dataset.agent));
     updateAgentSummary();
   }
   function cycleAgent(row,working,taskIndex,firstDelay){
