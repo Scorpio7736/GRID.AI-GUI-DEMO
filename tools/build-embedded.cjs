@@ -58,8 +58,8 @@ function build(name,def,read){
     }
     if(x==="live-meeting-demo"||x==="live-tile-layout")s=s.replace(/(\("motionToggle"\)\?\.addEventListener\()"click"/g,'$1"grid-settings-motion"');
     if(x==="workspace-ui")s=s.replace("resizeFromPointer(event.clientX);","resizeFromPointer(event.clientX - host.getBoundingClientRect().left);");
-    if(x==="chat")s=s.replace("function showToast(message) {","function showToast(message) {\n  bridge.notice('Connect',message,currentChat()?.id ?? null);");
-    if(x==="workflow-designer")s=s.replace("function notify(text) {","function notify(text) {\n    bridge.notice('Workflow Designer',text);");
+    if(x==="chat")s=s.replace("function showToast(message) {","function showToast(message) {\n  return bridge.notice('Connect',message,currentChat()?.id ?? null);");
+    if(x==="workflow-designer")s=s.replace("function notify(text) {","function notify(text) {\n    return bridge.notice('Workflow Designer',text);");
     return "// Source: scripts/"+x+".js\n"+s;
   }).join("\n;\n");
   const preferenceHook=name==="connect"?`function applyGridPreferences(value){

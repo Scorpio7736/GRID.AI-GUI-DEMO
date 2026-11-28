@@ -249,7 +249,7 @@ function iconText(agent) {
 }
 
 function showToast(message) {
-  bridge.notice('Connect',message,currentChat()?.id ?? null);
+  return bridge.notice('Connect',message,currentChat()?.id ?? null);
   const toast = $("toast");
   // Both transient toasts and persisted transcript notices share one clear
   // system-notification identity. Escape all dynamic text before insertion.

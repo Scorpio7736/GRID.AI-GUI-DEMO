@@ -37,7 +37,7 @@ window.GridEmbedded["workflow-designer"] = {markup:"\n<div class=\"designer-shel
   }
 
   function notify(text) {
-    bridge.notice('Workflow Designer',text);
+    return bridge.notice('Workflow Designer',text);
     const toast = $("studioToast");
     toast.textContent = text;
     toast.classList.add("show");

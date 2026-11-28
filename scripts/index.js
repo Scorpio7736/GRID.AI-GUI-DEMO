@@ -78,7 +78,7 @@
     addNotice(selectedApproval.title,(status==="approved"?"Approved":"Rejected")+" in demo. No operation executed.",id);
     drawApprovals();
     document.querySelector('[data-approval="'+id+'"]')?.focus();
-    toast((status==="approved"?"Approved":"Rejected")+" in demo. No operation executed.");
+
   }
   function openConnect(agent) {
     window.GridRouter.open("connect",{agent});
@@ -151,10 +151,55 @@
       animation.cancel();animations.delete(element);
     };
   }
+  const activeBanners=new Map();
+  function dismissBanner(id,immediate=false){
+    const entry=activeBanners.get(id);if(!entry)return;
+    clearTimeout(entry.timer);activeBanners.delete(id);
+    const {card}=entry;
+    if(immediate||!window.GridSettings.motionEnabled()||!card.animate){card.remove();return;}
+    card.inert=true;
+    const exit=card.animate([{opacity:1,transform:"translateX(0)"},{opacity:0,transform:"translateX(18px)"}],{duration:180,easing:"ease-in",fill:"forwards"});
+    exit.finished.then(()=>card.remove(),()=>card.remove());
+  }
+  function openNotice(n){
+    n.unread=false;dismissBanner(n.id);drawNotifications();
+    if(n.action){setNotifications(false);n.action();}
+    else if(n.approval){setNotifications(false);window.GridRouter.open("home",{attention:true,approval:n.approval});}
+    else setNotifications(true);
+  }
+  function showBanner(n){
+    if(!window.GridSettings.get().notificationBanners)return;
+    const stack=$("notificationBanners");
+    while(activeBanners.size>=3)dismissBanner(activeBanners.keys().next().value,true);
+    const card=document.createElement("article");card.className="notification-banner";
+    const top=document.createElement("div");top.className="banner-top";
+    const icon=document.createElement("span");icon.className="banner-icon";icon.setAttribute("aria-hidden","true");
+    icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>';
+    const label=document.createElement("span");label.textContent="GRID.AI SYSTEM NOTIFICATION";
+    const close=document.createElement("button");close.type="button";close.className="banner-close";close.textContent="×";close.setAttribute("aria-label","Dismiss notification");
+    top.append(icon,label,close);
+    const body=document.createElement("button");body.type="button";body.className="banner-body";
+    const title=document.createElement("strong");title.textContent=n.title;
+    const detail=document.createElement("span");detail.textContent=n.detail;
+    const hint=document.createElement("small");hint.textContent=n.approval?"View approval →":n.action?"Open workspace →":"View notifications →";
+    body.append(title,detail,hint);card.append(top,body);stack.append(card);
+    const entry={card,timer:null};activeBanners.set(n.id,entry);
+    const pause=()=>clearTimeout(entry.timer);
+    const resume=()=>{pause();if(!card.matches(":hover")&&!card.contains(document.activeElement))entry.timer=setTimeout(()=>dismissBanner(n.id),6500);};
+    card.addEventListener("pointerenter",pause);card.addEventListener("pointerleave",resume);
+    card.addEventListener("focusin",pause);card.addEventListener("focusout",()=>queueMicrotask(resume));
+    close.addEventListener("click",()=>dismissBanner(n.id));
+    body.addEventListener("click",()=>openNotice(n));
+    resume();
+  }
   function addNotice(title,detail,approval=null,action=null){
-    notices.unshift({id:"event-"+nextNotice++,title,detail,approval,action,unread:true,time:Date.now()});
+    const n={id:"event-"+nextNotice++,title:String(title),detail:String(detail),approval,action,unread:true,time:Date.now()};
+    notices.unshift(n);
     if(notices.length>40)notices.length=40;
     drawNotifications();
+    $("notificationAnnouncer").textContent=n.title+": "+n.detail;
+    if(window.GridSettings.get().notificationSounds)window.gridUiSound?.("notification");
+    showBanner(n);
   }
   function drawNotifications(){
     const unread=notices.filter(n=>n.unread).length;
@@ -174,10 +219,7 @@
       const time=document.createElement("time");time.dateTime=new Date(n.time).toISOString();time.textContent=new Date(n.time).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
       content.append(title,detail,time);item.append(dot,content);
       item.addEventListener("click",()=>{
-        n.unread=false;drawNotifications();
-        if(n.action){setNotifications(false);n.action();}
-        else if(n.approval){setNotifications(false);window.GridRouter.open("home",{attention:true,approval:n.approval});}
-        else{setNotifications(false,true);toast(n.detail);}
+        openNotice(n);
       });
       return item;
     }));
@@ -192,7 +234,7 @@
   }
 
   drawApprovals();
-  window.GridSettings.subscribe(drawNotifications);
+  window.GridSettings.subscribe(value=>{drawNotifications();if(!value.notificationBanners)for(const id of [...activeBanners.keys()])dismissBanner(id,true);});
 
   /* Agent presence: independent, staggered demo work cycles. */
   const agentTasks = {
@@ -472,7 +514,7 @@
       del.type="button";del.setAttribute("aria-label",(pendingDelete===system.id?"Confirm delete ":"Delete ")+system.name);
       del.addEventListener("click",()=>{
         if(pendingDelete!==system.id){pendingDelete=system.id;drawSystems();Array.from(managed.querySelectorAll(".system-delete")).find(b=>b.getAttribute("aria-label")==="Confirm delete "+system.name)?.focus();return;}
-        systems=systems.filter(s=>s.id!==system.id);pendingDelete=null;const saved=saveSystems();drawSystems();$("systemName").focus();toast("Demo system removed."+(saved?"":" Changes could not be saved in this browser."));addNotice("System removed",system.name+" · Demo inventory");
+        systems=systems.filter(s=>s.id!==system.id);pendingDelete=null;const saved=saveSystems();drawSystems();$("systemName").focus();addNotice("System removed",system.name+" · Demo inventory"+(saved?"":" · Could not save in this browser"));
       });
       card.append(details,del);
       if(pendingDelete===system.id){
@@ -496,7 +538,7 @@
     const message=!name?"Enter a system name.":systems.some(s=>s.name.toLowerCase()===name.toLowerCase())?"A system with that name already exists.":systems.length>=32?"The demo supports up to 32 systems.":"";
     error.textContent=message;error.hidden=!message;if(message)return;
     systems.push({id:globalThis.crypto?.randomUUID?.()||Date.now()+"-"+Math.random(),name,type:$("systemType").value,status:$("systemStatus").value});
-    pendingDelete=null;const saved=saveSystems();drawSystems();$("addSystemForm").reset();$("systemName").focus();toast("Demo system added."+(saved?"":" Changes could not be saved in this browser."));addNotice("System added",name+" · Demo inventory");
+    pendingDelete=null;const saved=saveSystems();drawSystems();$("addSystemForm").reset();$("systemName").focus();addNotice("System added",name+" · Demo inventory"+(saved?"":" · Could not save in this browser"));
   });
   drawSystems();
   window.GridHome={openPanel,showAttention,review,addNotice,setNav,setNotifications};

@@ -40,8 +40,9 @@
       [.075, 880, 820, .095, .021, "sine"]
     ],
     notification: [
-      [0, 700, 760, .095, .043, "sine"],
-      [.13, 925, 1000, .12, .036, "sine"]
+      [0, 620, 670, .115, .048, "sine"],
+      [.10, 825, 865, .15, .039, "triangle"],
+      [.23, 1050, 1010, .17, .032, "sine"]
     ],
     approval: [
       [0, 585, 615, .12, .046, "triangle"],
@@ -125,6 +126,7 @@
 
   function play(name) {
     if (!enabled || !context || !cues[name]) return false;
+    if (name === "notification" && settings && !settings.get().notificationSounds) return false;
     if (context.state === "suspended") {
       context.resume().then(() => { if (enabled && context.state === "running") play(name); }).catch(() => {});
       return true;
