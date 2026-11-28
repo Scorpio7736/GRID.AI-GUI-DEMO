@@ -236,3 +236,7 @@ Workflow cards preserve distinct **Saved Design**, **Active Preview**, and **Pau
 
 - System Resources expands in place to four labeled demo utilization graphs (CPU, RAM, GPU, VRAM) with synthetic rolling 60-second histories and two-second sample updates. Summary bars match the newest sample. No actual telemetry is read.
 - Connected Systems expands in place to view individual example systems and add or delete inventory entries with a confirmation step. The demo inventory persists in browser localStorage where supported. No real host, device, service or account is connected or disconnected.
+
+- Home uses staggered entrance animations and a short fade-out before launching Connect or Workflow Designer in the same tab. Expansion/collapse animates the agent list, resource charts, connected systems manager, system details and notification panel. Reduced-motion preferences disable these effects. The Attention Required panel stretches to match Agent Activity on desktop.
+- The notification bell opens a real demo notification feed with unread counts, mark-all-as-read, approval links, and system inventory change events. Reading notifications does not resolve approvals. Notification state is page-local and resets on reload.
+- Background-working agents use the gold busy color on Home, with randomly chosen role-specific example tasks and detail counts. These are simulated; other applications retain their own presence styling.

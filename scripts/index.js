@@ -8,6 +8,10 @@
     {id:"workflow",title:"Workflow authorization",agent:"Mcp",description:"Review an example request to activate a workflow. No workflow will be scheduled or executed.",status:"pending",comment:""}
   ];
   let selectedApproval = null, toastTimer;
+  const reducedMotion=matchMedia("(prefers-reduced-motion: reduce)");
+  const notices=approvals.map(a=>({id:"approval-"+a.id,title:a.title,detail:a.agent+" · Approval requested",approval:a.id,unread:true,time:Date.now()}));
+  let nextNotice=1, navigating=false;
+  const animations=new WeakMap();
   const dialog = $("homeDialog");
   const arrow = "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h15m-6-6 6 6-6 6\"/></svg>";
   function toast(message) {
@@ -21,8 +25,7 @@
     const label = String(pending).padStart(2,"0");
     $("pendingCount").textContent = label;
     $("attentionCount").textContent = label;
-    $("bellCount").textContent = String(pending);
-    $("bellCount").hidden = !pending;
+    drawNotifications();
     $("pendingCaption").textContent = pending ? "Requires your attention" : "All example requests reviewed";
     $("approvalMetric").classList.toggle("approval-metric",!!pending);
     $("approvalList").replaceChildren(...approvals.map(a => {
@@ -69,18 +72,22 @@
     const id=selectedApproval.id;
     selectedApproval.status=status;
     selectedApproval.comment=$("decisionComment").value.trim().slice(0,500);
-    dialog.close(); drawApprovals();
+    dialog.close();
+    const original=notices.find(n=>n.approval===id&&n.id==="approval-"+id);
+    if(original){original.unread=false;original.detail=selectedApproval.agent+" · "+(status==="approved"?"Approved in demo":"Rejected in demo");}
+    addNotice(selectedApproval.title,(status==="approved"?"Approved":"Rejected")+" in demo. No operation executed.",id);
+    drawApprovals();
     document.querySelector('[data-approval="'+id+'"]')?.focus();
     toast((status==="approved"?"Approved":"Rejected")+" in demo. No operation executed.");
   }
   function openConnect(agent) {
     const hash=new URLSearchParams({agent});
-    location.href="./Chat.html#"+hash.toString();
+    navigate("./Chat.html#"+hash.toString());
   }
   function showAgents(expanded) {
     $("expandAgents").setAttribute("aria-expanded",String(expanded));
     $("expandAgents").textContent=expanded?"Show less":"View all 6";
-    document.querySelectorAll("[data-extra-agent]").forEach(row=>row.hidden=!expanded);
+    animateDisclosure($("extraAgents"),expanded);
   }
   function showAttention() {
     $("attention").scrollIntoView({block:"nearest",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
@@ -92,9 +99,15 @@
   }
   $("navToggle").addEventListener("click",()=>setNav(!$("homeSidebar").classList.contains("open")));
   document.addEventListener("keydown",event=>{
-    if(event.key==="Escape"&&!dialog.open&&$("homeSidebar").classList.contains("open")){setNav(false);$("navToggle").focus();}
+    if(event.key==="Escape"&&!dialog.open){
+      if($("notificationButton").getAttribute("aria-expanded")==="true"){setNotifications(false,true);return;}
+      if($("homeSidebar").classList.contains("open")){setNav(false);$("navToggle").focus();}
+    }
   });
   document.addEventListener("click",event=>{
+    const link=event.target.closest("a[href]");
+    if(link&&!event.defaultPrevented&&event.button===0&&!event.ctrlKey&&!event.metaKey&&!event.shiftKey&&!event.altKey&&!link.hasAttribute("download")&&(!link.target||link.target==="_self")&&/^\.\/(?:Chat|Workflow-Designer)\.html$/.test(link.getAttribute("href"))){event.preventDefault();navigate(link.getAttribute("href"));return;}
+    if(!$("notificationPanel").contains(event.target)&&!$("notificationButton").contains(event.target))setNotifications(false);
     const button=event.target.closest("[data-preview],[data-approval],[data-agent],[data-panel]");
     if(button?.dataset.panel) openPanel(button.dataset.panel);
     else if(button?.dataset.preview)preview(button.dataset.preview);
@@ -105,21 +118,233 @@
   $("expandAgents").addEventListener("click",()=>showAgents($("expandAgents").getAttribute("aria-expanded")!=="true"));
   $("agentsMetric").addEventListener("click",()=>{showAgents(true);$("agentActivity").scrollIntoView({block:"nearest"});$("expandAgents").focus({preventScroll:true});});
   $("approvalMetric").addEventListener("click",showAttention);
-  $("notificationButton").addEventListener("click",showAttention);
+  $("notificationButton").addEventListener("click",()=>setNotifications($("notificationButton").getAttribute("aria-expanded")!=="true"));
+  $("closeNotifications").addEventListener("click",()=>setNotifications(false,true));
+  $("markNotificationsRead").addEventListener("click",()=>{notices.forEach(n=>n.unread=false);drawNotifications();});
+  $("notificationApprovals").addEventListener("click",()=>{setNotifications(false);showAttention();});
   $("approveApproval").addEventListener("click",()=>decide("approved"));
   $("rejectApproval").addEventListener("click",()=>decide("rejected"));
   dialog.addEventListener("close",()=>{selectedApproval=null;});
+
+  /* Interruptible height and opacity transitions; no hidden focusable content. */
+  function animateDisclosure(element,open){
+    const old=animations.get(element);
+    if(old?.open===open)return;
+    if(!old&&element.hidden===!open)return;
+    const height=element.hidden?0:element.getBoundingClientRect().height;
+    const opacity=element.hidden?0:Number(getComputedStyle(element).opacity);
+    if(old){old.animation.cancel();animations.delete(element);}
+    if(open)element.hidden=false;
+    if(!open&&element.contains(document.activeElement)){
+      const control=document.querySelector('[aria-controls="'+element.id+'"]');
+      control?.focus({preventScroll:true});
+    }
+    element.inert=!open;
+    if(reducedMotion.matches||typeof element.animate!=="function"){
+      element.hidden=!open;element.inert=!open;return;
+    }
+    const target=element.getBoundingClientRect().height;
+    const animation=element.animate([{height:height+"px",opacity,overflow:"hidden"},{height:(open?target:0)+"px",opacity:open?1:0,overflow:"hidden"}],{duration:300,easing:"cubic-bezier(.22,.72,.25,1)",fill:"both"});
+    animations.set(element,{animation,open});
+    animation.onfinish=()=>{
+      if(animations.get(element)?.animation!==animation)return;
+      element.hidden=!open;
+      animation.cancel();animations.delete(element);
+    };
+  }
+  /* Page exit is used for same-tab application launches, not external or modified clicks. */
+  function navigate(href){
+    if(navigating)return;
+    navigating=true;
+    const go=()=>{location.href=href;};
+    const shell=document.querySelector(".home-shell");
+    if(reducedMotion.matches||typeof shell.animate!=="function"){go();return;}
+    const animation=shell.animate([{opacity:1,transform:"translateY(0)"},{opacity:0,transform:"translateY(-5px)"}],{duration:230,easing:"ease-in",fill:"forwards"});
+    let finished=false;
+    const finish=()=>{if(finished)return;finished=true;go();};
+    animation.onfinish=finish;
+    setTimeout(finish,330);
+  }
+  window.addEventListener("pageshow",event=>{
+    navigating=false;
+    if(event.persisted)document.querySelector(".home-shell").getAnimations().forEach(a=>a.cancel());
+  });
+  function addNotice(title,detail,approval=null){
+    notices.unshift({id:"event-"+nextNotice++,title,detail,approval,unread:true,time:Date.now()});
+    if(notices.length>40)notices.length=40;
+    drawNotifications();
+  }
+  function drawNotifications(){
+    const unread=notices.filter(n=>n.unread).length;
+    $("bellCount").textContent=String(unread);
+    $("bellCount").hidden=!unread;
+    $("notificationButton").setAttribute("aria-label","Notifications, "+unread+" unread");
+    $("notificationSummary").textContent=unread+" unread · Demo";
+    $("markNotificationsRead").disabled=!unread;
+    const list=$("notificationList");
+    list.replaceChildren(...notices.map(n=>{
+      const item=document.createElement("button");
+      item.type="button";item.className="notification-item"+(n.unread?" unread":"");
+      const dot=document.createElement("i");dot.className="notification-dot";
+      const content=document.createElement("span");
+      const title=document.createElement("strong");title.textContent=n.title;
+      const detail=document.createElement("small");detail.textContent=n.detail;
+      const time=document.createElement("time");time.dateTime=new Date(n.time).toISOString();time.textContent=new Date(n.time).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+      content.append(title,detail,time);item.append(dot,content);
+      item.addEventListener("click",()=>{
+        n.unread=false;drawNotifications();
+        if(n.approval){setNotifications(false);review(n.approval);}
+        else{setNotifications(false,true);toast(n.detail);}
+      });
+      return item;
+    }));
+  }
+  function setNotifications(open,restoreFocus=false){
+    const trigger=$("notificationButton");
+    if(trigger.getAttribute("aria-expanded")===String(open))return;
+    trigger.setAttribute("aria-expanded",String(open));
+    animateDisclosure($("notificationPanel"),open);
+    if(open){$("closeNotifications").focus({preventScroll:true});}
+    else if(restoreFocus)trigger.focus({preventScroll:true});
+  }
+
   drawApprovals();
 
   /* Agent presence: independent, staggered demo work cycles. */
   const agentTasks = {
-    MCP:["Reviewing delegated tasks","Organizing project priorities","Checking workflow progress"],
-    MAXIS:["Reviewing Grid.AI source code","Checking build results","Preparing a code proposal"],
-    TRON:["Inspecting permission boundaries","Reviewing security observations","Checking access policies"],
-    JN:["Organizing project files","Reviewing storage usage","Checking archive candidates"],
-    VOLT:["Monitoring resource capacity","Reviewing performance trends","Checking model utilization"],
-    RELAY:["Preparing daily briefing","Organizing notification queue","Reviewing communication updates"]
-  };
+  "MCP": [
+    [
+      "Coordinating delegated tasks",
+      "Reviewing {n} worker proposals"
+    ],
+    [
+      "Planning project priorities",
+      "Comparing {n} backlog items"
+    ],
+    [
+      "Checking workflow progress",
+      "Validating {n} task handoffs"
+    ],
+    [
+      "Reviewing approval queue",
+      "Preparing {n} decision summaries"
+    ],
+    [
+      "Organizing agent assignments",
+      "Matching {n} tasks to specialists"
+    ]
+  ],
+  "MAXIS": [
+    [
+      "Reviewing Grid.AI source code",
+      "Inspecting {n} changed files"
+    ],
+    [
+      "Checking build results",
+      "Evaluating {n} test results"
+    ],
+    [
+      "Preparing a code proposal",
+      "Drafting changes across {n} modules"
+    ],
+    [
+      "Investigating a simulated bug",
+      "Tracing {n} candidate call paths"
+    ],
+    [
+      "Reviewing repository health",
+      "Checking {n} dependency entries"
+    ]
+  ],
+  "TRON": [
+    [
+      "Inspecting permission boundaries",
+      "Reviewing {n} access rules"
+    ],
+    [
+      "Reviewing security observations",
+      "Triaging {n} example findings"
+    ],
+    [
+      "Checking access policies",
+      "Comparing {n} policy entries"
+    ],
+    [
+      "Auditing agent grants",
+      "Validating {n} permission records"
+    ],
+    [
+      "Inspecting connection posture",
+      "Reviewing {n} example endpoints"
+    ]
+  ],
+  "JN": [
+    [
+      "Organizing project files",
+      "Classifying {n} example documents"
+    ],
+    [
+      "Reviewing storage usage",
+      "Checking {n} storage entries"
+    ],
+    [
+      "Checking archive candidates",
+      "Comparing {n} file metadata records"
+    ],
+    [
+      "Indexing project references",
+      "Preparing {n} catalog entries"
+    ],
+    [
+      "Reviewing backup inventory",
+      "Checking {n} example snapshots"
+    ]
+  ],
+  "VOLT": [
+    [
+      "Monitoring resource capacity",
+      "Sampling {n} utilization records"
+    ],
+    [
+      "Reviewing performance trends",
+      "Comparing {n} latency samples"
+    ],
+    [
+      "Checking model utilization",
+      "Evaluating {n} inference records"
+    ],
+    [
+      "Planning resource allocation",
+      "Reviewing {n} simulated workloads"
+    ],
+    [
+      "Analyzing memory pressure",
+      "Checking {n} example processes"
+    ]
+  ],
+  "RELAY": [
+    [
+      "Preparing daily briefing",
+      "Summarizing {n} example updates"
+    ],
+    [
+      "Organizing notification queue",
+      "Sorting {n} demo messages"
+    ],
+    [
+      "Reviewing communication updates",
+      "Drafting {n} briefing notes"
+    ],
+    [
+      "Preparing a status report",
+      "Consolidating {n} agent updates"
+    ],
+    [
+      "Checking delivery queue",
+      "Reviewing {n} sample notifications"
+    ]
+  ]
+};
   const agentRows=Array.from(document.querySelectorAll("[data-agent]"));
   function updateAgentSummary(){
     const available=agentRows.filter(row=>row.dataset.activity==="available").length;
@@ -135,15 +360,23 @@
     const mark=document.createElement("i");
     status.replaceChildren(mark,document.createTextNode(working?"Working in background":"Available"));
     dot.className="presence "+mode;
-    task.textContent=working?agentTasks[row.dataset.agent][taskIndex%3]:"Awaiting assignment";
+    const options=agentTasks[row.dataset.agent];
+    if(working){
+      const item=options[taskIndex%options.length];
+      task.querySelector(".task-title").textContent=item[0];
+      task.querySelector(".task-detail").textContent=item[1].replace("{n}",String(2+Math.floor(Math.random()*17)))+" · Demo";
+    }else{
+      task.querySelector(".task-title").textContent="Awaiting assignment";
+      task.querySelector(".task-detail").textContent="Ready for the next task";
+    }
     updateAgentSummary();
   }
   function cycleAgent(row,working,taskIndex,firstDelay){
     setAgentActivity(row,working,taskIndex);
     const delay=firstDelay??(working?7000+Math.random()*7000:5000+Math.random()*7000);
-    setTimeout(()=>cycleAgent(row,!working,taskIndex+(working?1:0)),delay);
+    setTimeout(()=>{const options=agentTasks[row.dataset.agent];const next=working?taskIndex:(taskIndex+1+Math.floor(Math.random()*(options.length-1)))%options.length;cycleAgent(row,!working,next);},delay);
   }
-  agentRows.forEach((row,i)=>cycleAgent(row,i%3===1,0,3500+i*1700+Math.random()*2500));
+  agentRows.forEach((row,i)=>cycleAgent(row,i%3===1,Math.floor(Math.random()*agentTasks[row.dataset.agent].length),3500+i*1700+Math.random()*2500));
 
   /* Rolling, synthetic resource history. No hardware or network access. */
   const metrics=[
@@ -181,11 +414,11 @@
     drawResources();
   },2000);
   function setResourceDetails(open){
-    $("resourceDetails").hidden=!open;
+    animateDisclosure($("resourceDetails"),open);
     $("resourceToggle").setAttribute("aria-expanded",String(open));
     $("resourceToggle").textContent=open?"Hide details ▴":"Details ▾";
   }
-  $("resourceToggle").addEventListener("click",()=>setResourceDetails($("resourceDetails").hidden));
+  $("resourceToggle").addEventListener("click",()=>setResourceDetails($("resourceToggle").getAttribute("aria-expanded")!=="true"));
 
   /* Connected systems: local demo inventory, with no actual connection operations. */
   const SYSTEM_KEY="gridai-home-demo-connections-v1";
@@ -233,12 +466,24 @@
       const card=node("div","managed-system");
       const details=node("details","system-detail");
       const summary=node("summary");summary.append(systemDot(system.status),node("strong","",system.name));
-      details.append(summary,node("p","",system.type+" · "+system.status+" (simulated)"));
+      const description=node("p","",system.type+" · "+system.status+" (simulated)");
+      details.append(summary,description);
+      summary.addEventListener("click",event=>{
+        if(reducedMotion.matches||typeof description.animate!=="function")return;
+        event.preventDefault();
+        const existing=description.getAnimations()[0];
+        if(existing){existing.reverse();return;}
+        const opening=!details.open;
+        if(opening)details.open=true;
+        const height=description.getBoundingClientRect().height;
+        const animation=description.animate(opening?[{height:"0px",opacity:0,overflow:"hidden"},{height:height+"px",opacity:1,overflow:"hidden"}]:[{height:height+"px",opacity:1,overflow:"hidden"},{height:"0px",opacity:0,overflow:"hidden"}],{duration:220,easing:"ease",fill:"both"});
+        animation.onfinish=()=>{details.open=opening?animation.playbackRate>0:animation.playbackRate<0;animation.cancel();};
+      });
       const del=node("button","system-delete",pendingDelete===system.id?"Confirm delete":"Delete");
       del.type="button";del.setAttribute("aria-label",(pendingDelete===system.id?"Confirm delete ":"Delete ")+system.name);
       del.addEventListener("click",()=>{
         if(pendingDelete!==system.id){pendingDelete=system.id;drawSystems();Array.from(managed.querySelectorAll(".system-delete")).find(b=>b.getAttribute("aria-label")==="Confirm delete "+system.name)?.focus();return;}
-        systems=systems.filter(s=>s.id!==system.id);pendingDelete=null;const saved=saveSystems();drawSystems();$("systemName").focus();toast("Demo system removed."+(saved?"":" Changes could not be saved in this browser."));
+        systems=systems.filter(s=>s.id!==system.id);pendingDelete=null;const saved=saveSystems();drawSystems();$("systemName").focus();toast("Demo system removed."+(saved?"":" Changes could not be saved in this browser."));addNotice("System removed",system.name+" · Demo inventory");
       });
       card.append(details,del);
       if(pendingDelete===system.id){
@@ -250,19 +495,19 @@
     });
   }
   function setConnections(open){
-    $("connectionManager").hidden=!open;
+    animateDisclosure($("connectionManager"),open);
     $("connectionsToggle").setAttribute("aria-expanded",String(open));
     $("connectionsToggle").textContent=open?"Close ▴":"Manage ▾";
     if(!open&&pendingDelete!==null){pendingDelete=null;drawSystems();}
   }
-  $("connectionsToggle").addEventListener("click",()=>setConnections($("connectionManager").hidden));
+  $("connectionsToggle").addEventListener("click",()=>setConnections($("connectionsToggle").getAttribute("aria-expanded")!=="true"));
   $("addSystemForm").addEventListener("submit",event=>{
     event.preventDefault();
     const name=$("systemName").value.trim(), error=$("systemError");
     const message=!name?"Enter a system name.":systems.some(s=>s.name.toLowerCase()===name.toLowerCase())?"A system with that name already exists.":systems.length>=32?"The demo supports up to 32 systems.":"";
     error.textContent=message;error.hidden=!message;if(message)return;
     systems.push({id:globalThis.crypto?.randomUUID?.()||Date.now()+"-"+Math.random(),name,type:$("systemType").value,status:$("systemStatus").value});
-    pendingDelete=null;const saved=saveSystems();drawSystems();$("addSystemForm").reset();$("systemName").focus();toast("Demo system added."+(saved?"":" Changes could not be saved in this browser."));
+    pendingDelete=null;const saved=saveSystems();drawSystems();$("addSystemForm").reset();$("systemName").focus();toast("Demo system added."+(saved?"":" Changes could not be saved in this browser."));addNotice("System added",name+" · Demo inventory");
   });
   drawSystems();
   function openPanel(key){
