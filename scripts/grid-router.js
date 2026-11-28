@@ -12,7 +12,7 @@
     "files":["File Manager","planned","Yet to be added."],
     "skills":["Skills Manager","planned","Yet to be added."],
     "models":["Model Manager","planned","Yet to be added."],
-    "voice-studio":["Voice Studio","planned","Yet to be added."],
+    "voice-studio":["Voice Studio","voice-studio"],
     "terminal":["Terminal","planned","Yet to be added."],
     settings:["Settings","settings"]
   };
@@ -86,6 +86,7 @@
     const token=++revision;
     if(transition){transition.cancel();transition=null;}
     const next=pageFor(route),previous=active? pageFor(active):null;
+    if(route!=="voice-studio")window.GridVoiceStudio?.stop();
     markRoute(route);
     window.GridHome.setNav(false);
     window.GridHome.setNotifications(false);
@@ -102,6 +103,7 @@
     if(config[route][1]==="planned"){$("plannedTitle").textContent=config[route][0];$("plannedDescription").textContent=config[route][2]==="Yet to be added."?config[route][2]:config[route][2]+" This workspace is not yet implemented.";}
     active=route;
     window.GridPresence.setRoute(route);
+    if(route==="voice-studio")window.GridVoiceStudio?.activate();
     if(route==="connect"||route==="workflow-designer"){
       try{
         const instance=mount(route);
