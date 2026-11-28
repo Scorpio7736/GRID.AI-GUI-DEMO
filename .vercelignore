@@ -18,7 +18,6 @@ Programs/GRID_*
 Programs/Agents/MCP/MCP_CallingCard.png
 Programs/Agents/Maxis/Maxis Head.png
 
-# WAV experiments and background music.
-# The live demo currently generates its event sound effects with
-# scripts/ui-sounds.js and does not request these audio files.
-Audio/
+# Exclude unused root-level WAV experiments and background music only.
+# Voice Studio uses Audio/Voices/*.mp3; keep those assets deployable.
+Audio/*.wav
