@@ -14,6 +14,7 @@ const definitions={
       "live-tile-layout"
     ],
     "scripts": [
+      "demo-text",
       "chat",
       "agent-ui",
       "workspace-ui",

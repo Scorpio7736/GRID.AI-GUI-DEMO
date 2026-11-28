@@ -816,6 +816,8 @@ function beginAgentInvitations(chat, agents) {
           "Earlier private messages remain visible to you but are not provided to newly joined agents as context in this demo.",
           { kind: "notice" }));
       }
+      destination.demoAgentHistoryStart ||= {};
+      destination.demoAgentHistoryStart[agent]=destination.messages.length;
       destination.participants = ORDER.filter(name =>
         destination.participants.includes(name) || name === agent
       );
@@ -877,25 +879,9 @@ function chooseAgent(message, chat) {
     return target;
   }
 
-  const text = message.toLowerCase();
-  const specialties = [
-    ["MAXIS", /code|program|build|compile|test|debug|repository/],
-    ["TRON", /security|firewall|virus|threat|defender/],
-    ["JN", /file|storage|drive|archive|duplicate|folder/],
-    ["VOLT", /cpu|gpu|ram|resource|performance|simulation/],
-    ["RELAY", /notification|message|inbox|delivery|alert/],
-    ["MCP", /plan|coordinate|task|workflow|agent/]
-  ];
-
-  for (const [name, pattern] of specialties) {
-    if (chat.participants.includes(name) && pattern.test(text)) {
-      return name;
-    }
-  }
-
-  return chat.participants.includes("MCP")
-    ? "MCP"
-    : chat.participants[0];
+  // Use only recent shared messages for routing; never include whispers.
+  const boundary=chat.livePrivateHistoryBoundary??0;
+  return GridDemoText.route(message,chat.participants,chat.messages.slice(boundary,-1).filter(m=>m.role==="You"&&!m.kind).slice(-6));
 }
 
 const AGENT_DEMO_BIOS = {
@@ -907,39 +893,13 @@ const AGENT_DEMO_BIOS = {
   RELAY: "I'm RELAY, GRID.AI's communications specialist. I help prepare notification and communication workflows, concise task briefings, and event updates. I keep communication actions within the approved permissions and destination scope."
 };
 
-function demonstrationReply(agent, message) {
-  const text = message.toLowerCase();
-  const question = text.replace(/@[a-z0-9_-]+\b/g, "").trim();
-
-  if (/\b(who are you|what do you do|what are you|what is your (?:role|job|purpose)|what can you do|introduce yourself|tell me about yourself|describe yourself|your responsibilities|your purpose|your role)\b/.test(question)) {
-    return AGENT_DEMO_BIOS[agent] + "\n\nThis is a scripted introduction for the GUI demo; I'm not connected to the live GRID.AI agent runtime.";
-  }
-
-  if (/\b(hello|hi|hey)\b/.test(text)) {
-    return `Hello. I'm ${agent}, Grid.AI's ${AGENTS[agent].role.toLowerCase()} specialist.\n\nThis is a scripted response demonstrating the conversation interface.`;
-  }
-
-  if (/memory|remember|context/.test(text)) {
-    return "Grid.AI's real architecture supports scoped persistent memory and conversation recall.\n\nThis HTML demonstration does not access those memories. You can export this conversation's context using its three-dot menu.";
-  }
-
-  if (/build|compile|code|test|debug/.test(text)) {
-    return "I would begin by inspecting the registered workspace, reviewing relevant files and instructions, and preparing a bounded development plan.\n\nActual builds, edits, and verification require authorized host operations. This browser demo cannot execute or verify them.";
-  }
-
-  if (/permission|approve|access/.test(text)) {
-    return "GRID separates access permissions from exact task and file-change approvals.\n\nA connected interface would display the host-validated operation, its scope, risk level, and consent requirements before execution.";
-  }
-
-  if (/status|system|health/.test(text)) {
-    return "The Connect interface prototype is running.\n\nThe Grid.AI host is not connected, so real model status, simulation state, hardware telemetry, and security information are unavailable.";
-  }
-
-  if (/meeting|agent|coordinate/.test(text)) {
-    return "MCP coordinates Grid.AI's specialist agents. Shared meetings contain selected participants, their conversation scope, and directed messages.\n\nThe graphical interface could also display task proposals, pending approvals, and verified results.";
-  }
-
-  return `As ${agent}, I would handle this through my ${AGENTS[agent].role.toLowerCase()} responsibilities.\n\nA connected implementation would provide a local-model response using authorized context. This response is scripted for the UI demonstration.`;
+function demoScopedHistory(chat,agent) {
+  const boundary=chat.demoAgentHistoryStart?.[agent]??0;
+  return chat.messages.slice(boundary,-1).filter(m=>m.role&&!m.kind).slice(-8)
+    .map(m=>({role:m.role,text:m.text}));
+}
+function demonstrationReply(agent,message,history=[]) {
+  return GridDemoText.reply(agent,message,history,AGENT_DEMO_BIOS[agent]||"");
 }
 
 function sendMessage() {
@@ -988,6 +948,7 @@ function sendMessage() {
     return;
   }
 
+  const replyHistory=demoScopedHistory(chat,agent);
   const pendingReply = makePendingReply(agent);
   chat.pendingReplies ||= [];
   chat.pendingReplies.push(pendingReply);
@@ -1015,7 +976,7 @@ function sendMessage() {
       agent,
       attachments.length
         ? "I can see file and link labels in this demonstration, but no files or websites were accessed, uploaded, or analyzed. Real GRID.AI access would require appropriate grants and review."
-        : demonstrationReply(agent, text),
+        : demonstrationReply(agent, text, replyHistory),
       { demo: true }
     );
 

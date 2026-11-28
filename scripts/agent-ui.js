@@ -526,6 +526,7 @@ function agentUiSendWhisper() {
 
   chat.whispers ||= {};
   chat.whispers[agent] ||= [];
+  const replyHistory=chat.whispers[agent].slice(-8).map(m=>({role:m.role,text:m.text}));
   chat.whispers[agent].push(makeMessage("You", text));
   const pendingReply = makePendingReply(agent);
   chat.pendingWhispers ||= {};
@@ -555,7 +556,7 @@ function agentUiSendWhisper() {
     }
     destination.whispers ||= {};
     destination.whispers[agent] ||= [];
-    const reply = makeMessage(agent, demonstrationReply(agent, text), { demo: true });
+    const reply = makeMessage(agent, demonstrationReply(agent, text, replyHistory), { demo: true });
     destination.whispers[agent].push(reply);
     touchChat(destination);
     saveState();
