@@ -228,7 +228,7 @@ function demoTypingDots(agent) {
   return `<span class="demo-thinking-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span><span class="sr-only">${escapeHtml(agent)} is typing</span>`;
 }
 function saveState(){
-  window.GridHome?.setConnectApprovals(state.chats.filter(c=>c.approval).map(c=>({id:"connect-"+c.id,chatId:c.id,title:c.title||"Conversation approval",agent:c.participants.join(", "),status:c.approval.status,comment:c.approval.comment||""})));
+  window.GridHome?.setConnectApprovals(state.chats.filter(c=>c.approval).map(c=>({id:"connect-"+c.id,chatId:c.id,title:c.approval.title||c.title||"Conversation approval",agent:c.approval.automatic?"Mcp":c.participants.join(", "),status:c.approval.status,comment:c.approval.comment||""})));
   return true;
 }
 
@@ -615,12 +615,8 @@ function renderMessages(animateId = null) {
     html += `
       <div class="approval-card">
         <div class="eyebrow">Grid.AI System Notification · DEMO / ACTION REVIEW</div>
-        <h3>Run a registered development test</h3>
-        <p>
-          Example operation: run a scoped .NET test against
-          an authorized workspace. No real task has been
-          submitted to Grid.AI.
-        </p>
+        <h3>${escapeHtml(chat.approval.title||"Run a registered development test")}</h3>
+        <p>${escapeHtml(chat.approval.description||"Example operation: run a scoped .NET test against an authorized workspace. No real task has been submitted to Grid.AI.")}</p>
 
         ${status === "pending" ? `
           <div class="approval-comment-field">
@@ -1570,6 +1566,36 @@ function handleChatAction(action, id) {
 }
 
 /* APPROVAL DEMONSTRATION */
+
+const MCP_APPROVAL_SCENARIOS=Object.freeze([
+  {title:"Review proposed repository changes",description:"MAXIS prepared a simulated patch. May I proceed with reviewing and staging the proposed changes?"},
+  {title:"Run development tests",description:"MAXIS recommends a scoped .NET test run to validate a proposed change. May I authorize the simulated test?"},
+  {title:"Review a security finding",description:"TRON flagged a sample permission issue. May I delegate a follow-up security review?"},
+  {title:"Activate a proposed workflow",description:"A sample workflow blueprint is ready for review. May I authorize its activation preview?"},
+  {title:"Review file organization plan",description:"JN prepared a sample cleanup and organization plan. May I proceed with reviewing the proposed file moves?"},
+  {title:"Approve outgoing project briefing",description:"RELAY has a sample project briefing ready. May I approve the delivery preview?"},
+  {title:"Review resource allocation",description:"VOLT recommends adjusting a simulated agent's resource budget. May I review the proposed allocation?"}
+]);
+let lastAutomaticScenario=-1;
+function requestAutomaticApproval(){
+  // A dedicated thread preserves the originating request and its decision.
+  // Do not select it, focus inputs, interrupt the current transcript or overwrite a pending request.
+  const pending=state.chats.filter(c=>c.approval?.status==="pending");
+  if(state.modal||pending.length>=3||pending.some(c=>c.approval.automatic))return false;
+  const choices=MCP_APPROVAL_SCENARIOS.map((_,index)=>index).filter(index=>index!==lastAutomaticScenario);
+  const index=choices[Math.floor(Math.random()*choices.length)];
+  const scenario=MCP_APPROVAL_SCENARIOS[index];
+  const chat=makeChat("Mcp · "+scenario.title,"private",["MCP"]);
+  chat.messages.push(makeMessage("MCP",scenario.description+" This is a simulated approval request; nothing will execute.",{demo:true}));
+  chat.approval={status:"pending",automatic:true,title:scenario.title,description:scenario.description+" No real action will be performed."};
+  state.chats.unshift(chat);
+  lastAutomaticScenario=index;
+  saveState();
+  renderChatList();
+  window.GridHome?.addNotice("Mcp · Approval requested",scenario.title,"connect-"+chat.id);
+  return true;
+}
+
 
 function showApprovalExample() {
   const chat = currentChat();
@@ -4165,5 +4191,5 @@ function applyGridPreferences(value){
   applyGridPreferences(window.GridSettings.get());
   window.GridSettings.subscribe(applyGridPreferences);
   
-return {openAgent(agent){if(!Object.prototype.hasOwnProperty.call(AGENTS,agent))return;const existing=state.chats.find(c=>c.type==="private"&&c.participants.length===1&&c.participants[0]===agent);if(existing)selectChat(existing.id);else createPrivateConversation(agent);},openChat(id){if(findChat(Number(id)))selectChat(Number(id));},presence(){return Object.fromEntries(ORDER.map(a=>[a,agentUiStatus(a)]));},refresh(){render();syncInspectorControls();}};
+return {openAgent(agent){if(!Object.prototype.hasOwnProperty.call(AGENTS,agent))return;const existing=state.chats.find(c=>c.type==="private"&&c.participants.length===1&&c.participants[0]===agent);if(existing)selectChat(existing.id);else createPrivateConversation(agent);},openChat(id){if(findChat(Number(id)))selectChat(Number(id));},requestAutomaticApproval(){return requestAutomaticApproval();},presence(){return Object.fromEntries(ORDER.map(a=>[a,agentUiStatus(a)]));},refresh(){render();syncInspectorControls();}};
 }};
