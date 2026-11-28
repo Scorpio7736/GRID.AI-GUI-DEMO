@@ -9,6 +9,11 @@
     projects:["Project Manager","planned","Manage project repositories, teams and objectives."],
     agents:["Agent Directory","planned","Configure agent identities, skills, models and permissions."],
     integrations:["Integrations","planned","Yet to be added."],"system-monitor":["System Monitor","planned","Yet to be added."],
+    "files":["File Manager","planned","Yet to be added."],
+    "skills":["Skills Manager","planned","Yet to be added."],
+    "models":["Model Manager","planned","Yet to be added."],
+    "voice-studio":["Voice Studio","planned","Yet to be added."],
+    "terminal":["Terminal","planned","Yet to be added."],
     settings:["Settings","planned","Configure preferences, permissions and system policies."]
   };
   const motion=matchMedia("(prefers-reduced-motion: reduce)");

@@ -260,3 +260,5 @@ Connect's embedded startup now waits until the agent UI's lexical state has been
 - Connect removes its redundant GRID.AI Connect logo block. Workflow Designer removes its separate top toolbar and places New draft, Save workflow, and Export JSON in the Visual Designer panel header. Button IDs, event handlers and draft-lock behavior are unchanged; controls wrap as space requires.
 
 - Connect no longer displays the duplicate Master Control identity footer. The global top-right MC avatar is replaced with a gear shortcut to the Settings workspace; the global sidebar operator identity remains intact. Settings is still a planned workspace.
+
+- Global navigation includes File Manager, Skills Manager, Model Manager, Voice Studio and Terminal as “Yet to be added” placeholder workspaces, grouped under Workspace, Agent Management and System. The future city workspace (The Grid) is intentionally excluded. Each new tab has its own hash route and participates in existing navigation transitions and browser history.

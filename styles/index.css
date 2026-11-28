@@ -156,3 +156,7 @@ dialog{background:var(--surface);color:var(--text);border:1px solid #63512b;bord
 /* Global Settings shortcut replaces the duplicate operator avatar. */
 .settings-button{color:var(--gold);text-decoration:none;flex:0 0 35px}
 .settings-button:hover{background:var(--gold-bg);border-color:var(--gold-dim)}
+
+/* Categorized navigation remains scrollable on shorter screens. */
+.home-nav>.nav-group-heading{margin-top:16px;margin-bottom:7px}
+.home-nav{overscroll-behavior:contain;min-height:0}
