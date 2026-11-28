@@ -3,13 +3,10 @@
 (() => {
   const $ = id => document.getElementById(id);
   const previews = {"command":["Command Center","Monitor delegation, agent activity and tasks."],"projects":["Project Manager","Manage projects, repositories and agent teams."],"agents":["Agent Directory","Configure agent skills, models and identities."],"integrations":["Integrations","Manage connected services, devices and MCP servers."],"system":["System Monitor","Inspect hosts, resource usage and model capacity."],"settings":["Settings","Configure permissions, appearance and policies."]};
-  const approvals = [
-    {id:"repo",title:"Repository changes",agent:"MAXIS",description:"Review an example source-code change before allowing a simulated repository operation.",status:"pending",comment:""},
-    {id:"workflow",title:"Workflow authorization",agent:"Mcp",description:"Review an example request to activate a workflow. No workflow will be scheduled or executed.",status:"pending",comment:""}
-  ];
+  let approvals = [];
   let selectedApproval = null, toastTimer;
   const reducedMotion=matchMedia("(prefers-reduced-motion: reduce)");
-  const notices=approvals.map(a=>({id:"approval-"+a.id,title:a.title,detail:a.agent+" · Approval requested",approval:a.id,unread:true,time:Date.now()}));
+  const notices=[];
   let nextNotice=1;
   const animations=new WeakMap();
   const dialog = $("homeDialog");
@@ -26,9 +23,9 @@
     $("pendingCount").textContent = label;
     $("attentionCount").textContent = label;
     drawNotifications();
-    $("pendingCaption").textContent = pending ? "Requires your attention" : "All example requests reviewed";
+    $("pendingCaption").textContent = pending ? "Requires your attention" : "No pending approvals";
     $("approvalMetric").classList.toggle("approval-metric",!!pending);
-    $("approvalList").replaceChildren(...approvals.map(a => {
+    $("approvalList").replaceChildren(...(approvals.length?approvals.map(a => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "approval-card" + (a.status !== "pending" ? " resolved "+a.status : "");
@@ -41,7 +38,7 @@
       copy.append(title,detail); button.append(dot,copy);
       button.insertAdjacentHTML("beforeend",arrow);
       return button;
-    }));
+    }):[node("p","panel-note","No approval requests yet. Requests from Connect will appear here.")]));
   }
   function showDialog(title,description,eyebrow) {
     $("dialogTitle").textContent=title;
@@ -59,6 +56,7 @@
   }
   function review(id) {
     const item=approvals.find(a=>a.id===id); if(!item)return;
+    if(item.chatId!=null){window.GridRouter.open("connect",{chat:String(item.chatId)});return;}
     selectedApproval=item;
     const pending=item.status==="pending";
     $("dialogApproval").hidden=!pending;
@@ -454,17 +452,7 @@
   ];
   const systemTypes=["Computer","MCP server","Device","Cloud service","Other"];
   const systemStatuses=["Connected","Available","Standby","Offline"];
-  function loadSystems(){
-    try{
-      const stored=JSON.parse(localStorage.getItem(SYSTEM_KEY)||"null");
-      if(Array.isArray(stored))return stored.filter(s=>s&&typeof s.id==="string"&&typeof s.name==="string"&&s.name.length<=60&&systemTypes.includes(s.type)&&systemStatuses.includes(s.status)).slice(0,32);
-    }catch{}
-    return defaults.map(s=>({...s}));
-  }
-  let systems=loadSystems(), pendingDelete=null;
-  function saveSystems(){
-    try{localStorage.setItem(SYSTEM_KEY,JSON.stringify(systems));return true;}catch{return false;}
-  }
+  let systems=defaults.map(s=>({...s})), pendingDelete=null;
   function node(tag,cls,value){
     const element=document.createElement(tag);
     if(cls)element.className=cls;
@@ -507,7 +495,7 @@
       del.type="button";del.setAttribute("aria-label",(pendingDelete===system.id?"Confirm delete ":"Delete ")+system.name);
       del.addEventListener("click",()=>{
         if(pendingDelete!==system.id){pendingDelete=system.id;drawSystems();Array.from(managed.querySelectorAll(".system-delete")).find(b=>b.getAttribute("aria-label")==="Confirm delete "+system.name)?.focus();return;}
-        systems=systems.filter(s=>s.id!==system.id);pendingDelete=null;const saved=saveSystems();drawSystems();$("systemName").focus();addNotice("System removed",system.name+" · Demo inventory"+(saved?"":" · Could not save in this browser"));
+        systems=systems.filter(s=>s.id!==system.id);pendingDelete=null;drawSystems();$("systemName").focus();addNotice("System removed",system.name+" · Demo inventory");
       });
       card.append(details,del);
       if(pendingDelete===system.id){
@@ -531,10 +519,20 @@
     const message=!name?"Enter a system name.":systems.some(s=>s.name.toLowerCase()===name.toLowerCase())?"A system with that name already exists.":systems.length>=32?"The demo supports up to 32 systems.":"";
     error.textContent=message;error.hidden=!message;if(message)return;
     systems.push({id:globalThis.crypto?.randomUUID?.()||Date.now()+"-"+Math.random(),name,type:$("systemType").value,status:$("systemStatus").value});
-    pendingDelete=null;const saved=saveSystems();drawSystems();$("addSystemForm").reset();$("systemName").focus();addNotice("System added",name+" · Demo inventory"+(saved?"":" · Could not save in this browser"));
+    pendingDelete=null;drawSystems();$("addSystemForm").reset();$("systemName").focus();addNotice("System added",name+" · Demo inventory");
   });
   drawSystems();
-  window.GridHome={openPanel,showAttention,review,addNotice,setNav,setNotifications};
+  function setConnectApprovals(records){
+    const next=records.map(a=>({...a}));
+    if(JSON.stringify(next)===JSON.stringify(approvals))return;
+    approvals=next;
+    drawApprovals();
+  }
+  function setWorkflowCounts(active,saved){
+    $("activeWorkflowMetricCount").textContent=String(active).padStart(2,"0");
+    $("activeWorkflowMetricCaption").textContent=active+" active preview"+(active===1?"":"s")+" · "+saved+" saved blueprint"+(saved===1?"":"s");
+  }
+  window.GridHome={openPanel,showAttention,review,addNotice,setNav,setNotifications,setConnectApprovals,setWorkflowCounts};
   function openPanel(key){
     const resource=key==="system";
     if(resource)setResourceDetails(true);else setConnections(true);

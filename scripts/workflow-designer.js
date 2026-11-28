@@ -40,103 +40,14 @@
   }
 
 
-  // Saved blueprints persist across refreshes in this browser only.
-  // "Active" is a UI preview status, never a real agent or scheduled task.
-  const WORKFLOW_STORAGE_KEY = "gridai-workflow-designer-library-v1";
-  const MAX_LIBRARY_ENTRIES = 24;
-  const FOLDER_STORAGE_KEY = "gridai-workflow-designer-folders-v1";
-  const VIEW_STORAGE_KEY = "gridai-workflow-designer-view-v1";
-  const MAX_WORKFLOW_FOLDERS = 12;
-
-  function readWorkflowLibrary() {
-    try {
-      const value = JSON.parse(window.localStorage.getItem(WORKFLOW_STORAGE_KEY) || "null");
-      if (!value || value.version !== 1 || !Array.isArray(value.workflows)) return [];
-      return value.workflows.filter(item =>
-        item && typeof item.id === "string" &&
-        typeof item.name === "string" &&
-        (item.status === "active" || item.status === "saved" || item.status === "paused") &&
-        item.flow && typeof item.flow === "object" &&
-        typeof item.flow.trigger === "string" &&
-        Array.isArray(item.flow.steps) && item.flow.steps.length > 0 &&
-        item.flow.steps.length <= 200 &&
-        item.flow.steps.every(step => step && typeof step.id === "string" &&
-          typeof step.kind === "string" && KINDS[step.kind] &&
-          typeof step.title === "string" && typeof step.description === "string" &&
-          typeof step.agent === "string" &&
-          (!step.skill || (typeof step.skill.filename === "string" &&
-            typeof step.skill.text === "string" && step.skill.text.length <= 70000 &&
-            Number.isFinite(step.skill.bytes) && step.skill.bytes <= MAX_SKILL_BYTES)))
-      ).slice(0, MAX_LIBRARY_ENTRIES);
-    } catch {
-      return [];
-    }
-  }
-
-  function storeWorkflowLibrary(next) {
-    try {
-      window.localStorage.setItem(WORKFLOW_STORAGE_KEY,
-        JSON.stringify({version: 1, workflows: next}));
-    } catch {
-      notify("Unable to save: browser storage is unavailable or full.");
-      return false;
-    }
-    state.savedWorkflows = next;
-    return true;
-  }
-
-
-  // Migrate the original v1 library seamlessly: records without folderId
-  // remain unfiled and the separate folders/preferences keys are optional.
-  function readWorkflowFolders() {
-    try {
-      const value = JSON.parse(window.localStorage.getItem(FOLDER_STORAGE_KEY) || "[]");
-      if (!Array.isArray(value)) return [];
-      const seen = new Set();
-      return value.filter(folder => {
-        if (!folder || typeof folder.id !== "string" ||
-            !/^folder-[\w-]{1,40}$/.test(folder.id) ||
-            typeof folder.name !== "string" ||
-            !folder.name.trim() || folder.name.length > 32 ||
-            seen.has(folder.id)) return false;
-        seen.add(folder.id);
-        return true;
-      }).slice(0, MAX_WORKFLOW_FOLDERS);
-    } catch {
-      return [];
-    }
-  }
-
-  function storeWorkflowFolders(next) {
-    try {
-      window.localStorage.setItem(FOLDER_STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      notify("Folder changes could not be saved in this browser.");
-      return false;
-    }
-    state.folders = next;
-    return true;
-  }
-
-  function loadLibraryView() {
-    try {
-      const v = JSON.parse(window.localStorage.getItem(VIEW_STORAGE_KEY) || "{}");
-      state.sortMode = ["updated", "oldest", "name", "folder"].includes(v.sortMode) ?
-        v.sortMode : "updated";
-      state.folderFilter = typeof v.folderFilter === "string" ? v.folderFilter : "";
-    } catch {
-      // Storage may be disabled; use defaults.
-    }
-  }
-
-  function persistLibraryView() {
-    try {
-      window.localStorage.setItem(VIEW_STORAGE_KEY,
-        JSON.stringify({sortMode: state.sortMode, folderFilter: state.folderFilter}));
-    } catch {
-      // The UI still works in-memory when browser storage is disabled.
-    }
-  }
+  // Library, folders and preferences exist only in this page's memory.
+  const MAX_LIBRARY_ENTRIES=24, MAX_WORKFLOW_FOLDERS=12;
+  function readWorkflowLibrary(){return [];}
+  function storeWorkflowLibrary(next){state.savedWorkflows=next;return true;}
+  function readWorkflowFolders(){return [];}
+  function storeWorkflowFolders(next){state.folders=next;return true;}
+  function loadLibraryView(){}
+  function persistLibraryView(){}
 
   function folderName(id) {
     if (!id) return "Unfiled";
@@ -355,6 +266,7 @@
     const allSaved = state.savedWorkflows.filter(item => item.status !== "active");
     const active = sortedWorkflows(allActive.filter(matchesLibraryView));
     const saved = sortedWorkflows(allSaved.filter(matchesLibraryView));
+    window.GridHome?.setWorkflowCounts(allActive.length,allSaved.length);
     $("activeWorkflowCount").textContent = String(allActive.length);
     $("savedWorkflowCount").textContent = String(allSaved.length);
     const filtering = Boolean(state.searchQuery.trim() || state.folderFilter);
@@ -380,7 +292,7 @@
     label.textContent = !state.flow ? "Save workflow" :
       !state.currentSavedId ? "Save workflow" :
       state.dirty ? "Save changes" : "Saved";
-    button.title = "Save the blueprint to this browser only; no automation is started";
+    button.title = "Keep the blueprint for this session only; no automation is started";
   }
 
   function saveCurrentWorkflow() {
@@ -417,7 +329,7 @@
     state.dirty = false;
     render();
     drawWorkflowLibrary();
-    notify(previous ? "Changes saved to this browser" : "Blueprint saved — activate its preview in the sidebar");
+    notify(previous ? "Changes saved for this session" : "Blueprint saved — activate its preview in the sidebar");
   }
 
   function openSavedWorkflow(record) {
@@ -461,7 +373,7 @@
       return;
     }
     if (action === "delete") {
-      if (!window.confirm("Delete saved blueprint “" + record.name + "” from this browser?")) return;
+      if (!window.confirm("Delete saved blueprint “" + record.name + "” from this session?")) return;
       const next = state.savedWorkflows.filter(item => item.id !== id);
       if (!storeWorkflowLibrary(next)) return;
       if (state.currentSavedId === id) {
@@ -470,7 +382,7 @@
         render();
       }
       drawWorkflowLibrary();
-      notify("Saved blueprint deleted from this browser");
+      notify("Saved blueprint removed from this session");
     }
   }
 

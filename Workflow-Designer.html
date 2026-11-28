@@ -64,7 +64,7 @@
           <span>SAVED BLUEPRINTS</span><span class="workflow-library-count" id="savedWorkflowCount">0</span>
         </div>
         <div class="workflow-library-list" id="savedWorkflowList" aria-label="Saved workflow blueprints" aria-live="polite"></div>
-        <p class="workflow-library-footnote">Stored only in this browser. No GRID.AI backend connection.</p>
+        <p class="workflow-library-footnote">Kept for this session only. Refresh clears the library. No GRID.AI backend connection.</p>
       </section>
 
     </div>
@@ -83,7 +83,7 @@
           <span class="draft-tag" id="draftTag">AWAITING INPUT</span>
           <div class="blueprint-actions" role="group" aria-label="Workflow draft actions">
             <button class="toolbar-button" id="resetFlow" type="button" title="Start a new workflow">↺ <span>New draft</span></button>
-            <button class="toolbar-button primary-action" id="saveWorkflow" type="button" title="Save the current blueprint in this browser" disabled>▣ <span>Save workflow</span></button>
+            <button class="toolbar-button primary-action" id="saveWorkflow" type="button" title="Keep the current blueprint for this session" disabled>▣ <span>Save workflow</span></button>
             <button class="toolbar-button" id="exportJson" type="button" title="Download the workflow as JSON">⇩ <span>Export JSON</span></button>
           </div>
         </div>
@@ -134,7 +134,7 @@
               <button id="removeSkill" class="skill-remove" type="button" hidden>Remove</button>
             </div>
             <details id="skillPreview" class="skill-preview" hidden><summary>Preview skill instructions</summary><pre id="skillPreviewText"></pre></details>
-            <p class="skill-note">Maximum 64 KB · stored in this browser with the saved blueprint · never executed</p>
+            <p class="skill-note">Maximum 64 KB · kept in memory with the session blueprint · never executed</p>
           </section>
           <div class="editor-actions"><div class="step-move-buttons"><button class="small-button" id="moveStepUp" type="button">↑ Move up</button><button class="small-button" id="moveStepDown" type="button">↓ Move down</button></div><button class="danger-link" id="removeStep" type="button">Remove step</button></div>
         </section>

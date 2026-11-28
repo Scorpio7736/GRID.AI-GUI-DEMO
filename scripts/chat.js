@@ -95,7 +95,10 @@ function makePendingReply(agent) {
 function demoTypingDots(agent) {
   return `<span class="demo-thinking-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span><span class="sr-only">${escapeHtml(agent)} is typing</span>`;
 }
-function saveState(){return true;}
+function saveState(){
+  window.GridHome?.setConnectApprovals(state.chats.filter(c=>c.approval).map(c=>({id:"connect-"+c.id,chatId:c.id,title:c.title||"Conversation approval",agent:c.participants.join(", "),status:c.approval.status,comment:c.approval.comment||""})));
+  return true;
+}
 
 function currentChat() {
   return state.chats.find(c => c.id === state.currentId) || null;
@@ -1439,6 +1442,7 @@ function showApprovalExample() {
   const chat = currentChat();
   if (!chat) return;
 
+  if(chat.approval?.status==="pending"){showToast("An approval is already pending in this conversation.");return;}
   chat.approval = { status: "pending" };
   window.gridUiSound?.("approval");
 
