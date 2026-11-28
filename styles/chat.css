@@ -1389,3 +1389,6 @@ textarea:focus-visible {
 .topbar{height:48px;min-height:48px;padding-block:0;gap:8px}
 .topbar-actions{flex-shrink:0}
 @media(max-width:700px){.topbar{height:48px;min-height:48px}}
+
+/* Connect is already branded by the global navigation. */
+.sidebar>.sidebar-actions{flex-shrink:0}

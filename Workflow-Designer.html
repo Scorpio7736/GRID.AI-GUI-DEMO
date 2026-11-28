@@ -76,24 +76,16 @@
   </aside>
 
   <main class="studio-main">
-    <header class="studio-topbar">
-      
-      <div class="topbar-actions">
-        
-        
-        <button class="toolbar-button" id="resetFlow" type="button" title="Start a new workflow">↺ <span>New draft</span></button>
-        <button class="toolbar-button primary-action" id="saveWorkflow" type="button" title="Save the current blueprint in this browser" disabled>▣ <span>Save workflow</span></button>
-        <button class="toolbar-button" id="exportJson" type="button" title="Download the workflow as JSON">⇩ <span>Export JSON</span></button>
-      </div>
-    </header>
-
-    
-
     <div class="studio-grid">
       <section class="blueprint-panel" aria-label="Generated workflow blueprint">
         <div class="panel-heading">
           <div class="panel-heading-label"><span class="panel-kicker">01 / WORKFLOW BLUEPRINT</span><h2>Visual designer</h2></div>
           <span class="draft-tag" id="draftTag">AWAITING INPUT</span>
+          <div class="blueprint-actions" role="group" aria-label="Workflow draft actions">
+            <button class="toolbar-button" id="resetFlow" type="button" title="Start a new workflow">↺ <span>New draft</span></button>
+            <button class="toolbar-button primary-action" id="saveWorkflow" type="button" title="Save the current blueprint in this browser" disabled>▣ <span>Save workflow</span></button>
+            <button class="toolbar-button" id="exportJson" type="button" title="Download the workflow as JSON">⇩ <span>Export JSON</span></button>
+          </div>
         </div>
 
         <div class="blueprint-summary">
