@@ -112,3 +112,43 @@ dialog{background:var(--surface);color:var(--text);border:1px solid #63512b;bord
 .notification-footer:hover{background:var(--gold-bg)}
 @media(max-width:720px){.activity-grid>.panel{height:auto}.notification-panel{right:12px}}
 @media(prefers-reduced-motion:reduce){.home-topbar,.home-sidebar .home-brand,.home-sidebar .home-nav,.home-sidebar .sidebar-foot,.dashboard>*{animation:none!important}.agent-row[data-activity="background"] .presence,.agent-row[data-activity="background"] .agent-status i{animation:none!important}}
+
+/* Home only: compact desktop rail, expanding over the workspace on hover.
+   The grid reserves the collapsed width, so the dashboard never jumps or reflows. */
+@media (min-width:981px) and (hover:hover) and (pointer:fine) {
+  .home-shell{--rail-width:64px;--expanded-rail-width:244px;grid-template-columns:var(--rail-width) minmax(0,1fr)}
+  .home-sidebar{
+    width:var(--rail-width);min-width:0;overflow:hidden;z-index:22;
+    transition:width .28s cubic-bezier(.22,.72,.25,1),box-shadow .28s ease;
+  }
+  .home-sidebar:hover,.home-sidebar:has(:focus-visible){
+    width:var(--expanded-rail-width);box-shadow:12px 0 35px #0006;
+  }
+  .home-brand{padding:0 14px;gap:15px;white-space:nowrap;overflow:hidden}
+  .home-brand>svg{width:35px;height:35px;flex:0 0 35px}
+  .home-brand-copy{flex-shrink:0}
+  .home-nav{padding:21px 8px;overflow-x:hidden;scrollbar-width:none}
+  .home-nav::-webkit-scrollbar{width:0;height:0}
+  .home-nav>.eyebrow{white-space:nowrap;margin:0 7px 12px}
+  .nav-item{padding:0 13px;gap:13px;white-space:nowrap;overflow:hidden}
+  .nav-item svg{width:20px;height:20px;flex:0 0 20px}
+  .nav-item .nav-label-text{flex-shrink:0}
+  .nav-item:focus-visible,.home-brand:focus-visible{outline-offset:-2px}
+  .sidebar-foot{padding:19px 14px;gap:11px;white-space:nowrap;overflow:hidden;position:relative}
+  .sidebar-foot .operator-copy{flex-shrink:0}
+  .sidebar-foot>.presence{position:absolute;left:39px;bottom:18px;margin:0;border:2px solid var(--sidebar);width:10px;height:10px}
+  .home-sidebar .home-brand-copy,.home-sidebar .nav-label-text,.home-sidebar .nav-pending,.home-sidebar .home-nav>.eyebrow,.home-sidebar .operator-copy{
+    opacity:0;transform:translateX(-5px);transition:opacity .15s ease,transform .2s ease;pointer-events:none;
+  }
+  .home-sidebar:hover .home-brand-copy,.home-sidebar:hover .nav-label-text,.home-sidebar:hover .nav-pending,.home-sidebar:hover .home-nav>.eyebrow,.home-sidebar:hover .operator-copy,
+  .home-sidebar:has(:focus-visible) .home-brand-copy,.home-sidebar:has(:focus-visible) .nav-label-text,.home-sidebar:has(:focus-visible) .nav-pending,.home-sidebar:has(:focus-visible) .home-nav>.eyebrow,.home-sidebar:has(:focus-visible) .operator-copy{
+    opacity:1;transform:none;transition-delay:.09s;
+  }
+}
+/* Touch screens use the existing click-to-open navigation drawer, even at desktop widths. */
+@media (min-width:981px) and (hover:none), (min-width:981px) and (pointer:coarse) {
+  .home-shell{grid-template-columns:minmax(0,1fr)}
+  .home-sidebar{position:fixed;top:66px;bottom:0;left:0;width:244px;height:auto;z-index:22;transform:translateX(-100%);visibility:hidden;transition:transform .2s,visibility .2s;box-shadow:12px 0 40px #0008}
+  .home-sidebar.open{transform:none;visibility:visible}
+  .nav-toggle{display:grid}
+}
