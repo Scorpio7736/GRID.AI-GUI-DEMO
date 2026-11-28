@@ -21,6 +21,8 @@
   });
   const state = {flow: null, selectedStepId: null, revision: 0, nextStepId: 1, pendingReply: false, runTimer: null, runToken: 0, savedWorkflows: [], folders: [], currentSavedId: null, dirty: false, searchQuery: "", folderFilter: "", sortMode: "updated"};
   let toastTimer = null;
+  let draftJob = null;
+  const draftDelay=(low,high)=>low+Math.floor(Math.random()*(high-low+1));
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -279,7 +281,7 @@
     const busy=state.pendingReply;
     $("mcpPresence").dataset.status=busy?"busy":"user";
     $("mcpPresenceDot").classList.toggle("busy",busy);
-    $("mcpPresenceLabel").textContent=busy?"Drafting workflow…":"Working with User";
+    $("mcpPresenceLabel").textContent=busy?(draftJob?.stage||"Drafting workflow…"):"Working with User";
   }
 
   function cloneBlueprint(flow) {
@@ -368,7 +370,7 @@
   function updateSaveControl() {
     const button = $("saveWorkflow");
     const label = button.querySelector("span");
-    button.disabled = !state.flow || (Boolean(state.currentSavedId) && !state.dirty);
+    button.disabled = state.pendingReply || !state.flow || (Boolean(state.currentSavedId) && !state.dirty);
     label.textContent = !state.flow ? "Save workflow" :
       !state.currentSavedId ? "Save workflow" :
       state.dirty ? "Save changes" : "Saved";
@@ -413,6 +415,7 @@
   }
 
   function openSavedWorkflow(record) {
+    if(state.pendingReply)return;
     if (state.dirty && state.flow &&
         !window.confirm("Discard unsaved draft changes and open this saved blueprint?")) return;
     stopPreview();
@@ -589,7 +592,7 @@
       clearTimeout(state.runTimer);
       state.runTimer = null;
     }
-    $("previewRun").disabled = !state.flow;
+    $("previewRun").disabled = state.pendingReply || !state.flow;
     $("previewRun").textContent = "▷ Preview run";
     document.querySelectorAll(".flow-node").forEach(node => node.classList.remove("is-running", "is-complete"));
   }
@@ -598,10 +601,13 @@
     const list = $("flowSteps");
     list.replaceChildren();
     if (!state.flow) return;
-    state.flow.steps.forEach((step, i) => {
+    const visible = draftJob?.reveal == null ? state.flow.steps : state.flow.steps.slice(0,draftJob.reveal);
+    visible.forEach((step, i) => {
       if (i > 0) list.append(el("div", "flow-connector"));
       const node = el("button", "flow-node kind-" + step.kind + (step.id === state.selectedStepId ? " selected" : ""));
       node.type = "button";
+      node.disabled = state.pendingReply;
+      if(state.pendingReply && i===visible.length-1)node.classList.add("draft-node-enter");
       node.dataset.stepId = step.id;
       node.setAttribute("aria-label", "Edit step " + (i + 1) + ": " + step.title);
       node.setAttribute("aria-pressed", String(step.id === state.selectedStepId));
@@ -624,6 +630,7 @@
       });
       list.append(node);
     });
+    if(state.pendingReply)return;
     list.append(el("div", "flow-connector"));
     const terminal = el("div", "flow-terminal");
     terminal.append(el("i"), document.createTextNode("WORKFLOW COMPLETE · PREVIEW"));
@@ -652,7 +659,7 @@
   async function attachSkillFile(file) {
     const step = currentStep();
     const flow = state.flow;
-    if (!file || !step) return;
+    if (!file || !step || state.pendingReply) return;
     const filename = String(file.name || "").split(/[\\/]/).pop().slice(0, 120);
     if (!/\.(txt|md)$/i.test(filename)) {
       notify("Select a .txt or .md instruction file.");
@@ -669,7 +676,7 @@
         return;
       }
       // File reads are asynchronous: never attach to a different selected step.
-      if (state.flow !== flow || currentStep() !== step) {
+      if (state.pendingReply || state.flow !== flow || currentStep() !== step) {
         notify("Step changed while reading the skill. Select it and upload again.");
         return;
       }
@@ -700,15 +707,22 @@
     const flow = state.flow;
     $("emptyCanvas").hidden = Boolean(flow);
     $("flowSteps").hidden = !flow;
-    $("draftTag").textContent = !flow ? "AWAITING INPUT" :
+    $("draftTag").textContent = state.pendingReply ? "MCP DRAFTING · DEMO" : !flow ? "AWAITING INPUT" :
       state.currentSavedId ? (state.dirty ? "UNSAVED CHANGES" : "SAVED BLUEPRINT") : "EDITABLE DRAFT";
     $("flowTitle").textContent = flow ? flow.name : "Your workflow starts here";
     $("flowDescription").textContent = flow ? flow.description : "Tell MCP what you want to automate and a proposed plan will appear below.";
-    $("metricSteps").textContent = flow ? flow.steps.length : "0";
-    $("metricAgents").textContent = flow ? new Set(flow.steps.map(step => step.agent).filter(x => x !== "HUMAN" && x !== "SYSTEM")).size : "0";
+    const visibleSteps = flow ? (draftJob?.reveal == null ? flow.steps : flow.steps.slice(0,draftJob.reveal)) : [];
+    $("metricSteps").textContent = visibleSteps.length;
+    $("metricAgents").textContent = flow ? new Set(visibleSteps.map(step => step.agent).filter(x => x !== "HUMAN" && x !== "SYSTEM")).size : "0";
     $("metricTrigger").textContent = flow ? flow.trigger : "—";
-    $("addStep").disabled = !flow;
-    $("previewRun").disabled = !flow;
+    $("addStep").disabled = state.pendingReply || !flow;
+    $("previewRun").disabled = state.pendingReply || !flow;
+    $("exportJson").disabled = state.pendingReply;
+    $("resetFlow").disabled = state.pendingReply;
+    $("workflowLibrary").inert = state.pendingReply;
+    $("stepInspector").inert = state.pendingReply;
+    $("promptStarters").inert = state.pendingReply;
+    $("workflowCanvas").setAttribute("aria-busy",String(state.pendingReply));
     $("footerVersion").textContent = "v0." + state.revision;
     updateSaveControl();
     renderSteps();
@@ -806,55 +820,130 @@
     return null;
   }
 
-  function replyTo(text) {
+  // The stages below are presentation only; the existing deterministic planner
+  // still owns every step, assignment, approval and edit. Never run a workflow here.
+  function prepareDraft(text) {
     const edited = applyEdit(text);
-    if (edited !== null) {
-      message("MCP", edited);
-      note("Blueprint updated · v0." + state.revision);
-      return;
-    }
+    if (edited !== null) return {reply:edited,note:"Blueprint reviewed · v0."+state.revision,created:false};
     state.flow = workflowFromPrompt(text);
     state.currentSavedId = null;
     state.revision = 0;
     state.selectedStepId = null;
     commitRevision();
-    message("MCP",
-      "I've drafted “" + state.flow.name + "” as a " + state.flow.steps.length + "-step workflow.\n\n" +
-      "Trigger: " + state.flow.trigger + ". I assigned the work across " +
-      new Set(state.flow.steps.map(step => step.agent).filter(x => x !== "SYSTEM" && x !== "HUMAN")).size +
-      " specialist agent(s)." +
-      (state.flow.steps.some(step => step.kind === "approval") ? " I included a Master Control approval gate." : "") +
-      "\n\nSelect a step on the canvas to edit its instructions or assigned agent. You can also tell me things like “add approval,” “run every Friday at 9 AM,” or “send the result by email.”");
-    note("New workflow blueprint generated · v0." + state.revision);
-    notify("Workflow blueprint generated");
+    return {
+      reply: "I've drafted “" + state.flow.name + "” as a " + state.flow.steps.length + "-step workflow.\n\n" +
+        "Trigger: " + state.flow.trigger + ". I assigned the work across " +
+        new Set(state.flow.steps.map(step => step.agent).filter(x => x !== "SYSTEM" && x !== "HUMAN")).size +
+        " specialist agent(s)." +
+        (state.flow.steps.some(step => step.kind === "approval") ? " I included a Master Control approval gate." : "") +
+        "\n\nSelect a step on the canvas to edit its instructions or assigned agent. You can also tell me things like “add approval,” “run every Friday at 9 AM,” or “send the result by email.”",
+      note:"New workflow blueprint generated · v0."+state.revision,created:true
+    };
+  }
+
+  function setDraftStage(job,label,detail,progress) {
+    if(draftJob!==job)return;
+    job.stage=label;
+    job.title.textContent=label;
+    job.detail.textContent=detail;
+    job.progress.value=progress;
+    job.percent.textContent=progress+"%";
+    renderMcpPresence();
+  }
+
+  function scheduleDraft(job,callback,delay) {
+    job.timer=setTimeout(()=>{
+      if(draftJob!==job)return;
+      try{callback();}catch(error){finishDraft(job,"error",error);}
+    },delay);
+  }
+
+  function finishDraft(job,outcome,error) {
+    if(draftJob!==job)return;
+    clearTimeout(job.timer);
+    job.card.remove();
+    if(outcome!=="complete"){
+      Object.assign(state,job.snapshot);
+    }
+    draftJob=null;
+    state.pendingReply=false;
+    $("sendMessage").disabled=false;
+    renderMcpPresence();
+    render();
+    if(outcome==="complete"){
+      message("MCP",job.result.reply);
+      note(job.result.note);
+      window.gridUiSound?.("received");
+      if(job.result.created)notify("Workflow blueprint generated");
+    }else if(outcome==="cancel"){
+      note("Drafting canceled · previous blueprint retained");
+    }else{
+      console.error("Workflow draft failed",error);
+      message("MCP","I couldn't finish the simulated draft. Your previous blueprint has been retained.");
+      window.gridUiSound?.("error");
+      notify("Drafting interrupted — previous blueprint retained");
+    }
+    // A hidden workspace must not steal focus from another application.
+    if($("mcpInput").getClientRects().length && !document.activeElement?.matches("input,textarea,select,button")){
+      $("mcpInput").focus({preventScroll:true});
+    }
   }
 
   function submitPrompt(value) {
-    const text = value.trim();
-    if (!text || state.pendingReply) return;
-    message("user", text);
+    const text=value.trim();
+    if(!text||state.pendingReply)return;
+    stopPreview();
+    const snapshot={flow:state.flow,selectedStepId:state.selectedStepId,revision:state.revision,nextStepId:state.nextStepId,currentSavedId:state.currentSavedId,dirty:state.dirty};
+    // Work on a copy so cancellation or errors cannot destroy the previous draft.
+    if(state.flow)state.flow=cloneBlueprint(state.flow);
+    message("user",text);
     window.gridUiSound?.("sent");
-    $("mcpInput").value = "";
-    state.pendingReply = true;
-    renderMcpPresence();
-    $("sendMessage").disabled = true;
-    const bubble = message("MCP", "Drafting a blueprint…");
-    bubble.classList.add("pending-message");
-    setTimeout(() => {
-      bubble.remove();
-      try {
-        replyTo(text);
-        window.gridUiSound?.("received");
-      } catch(error) {
-        window.gridUiSound?.("error");
-        throw error;
-      } finally {
-        state.pendingReply = false;
-        renderMcpPresence();
-        $("sendMessage").disabled = false;
-        $("mcpInput").focus({preventScroll: true});
-      }
-    }, 550);
+    $("mcpInput").value="";
+    state.pendingReply=true;
+    $("sendMessage").disabled=true;
+    const card=message("MCP","");
+    card.classList.add("drafting-message");
+    const bubble=card.querySelector(".message-bubble");
+    const title=el("strong","draft-stage-title");
+    const dots=el("span","draft-dots");dots.setAttribute("aria-hidden","true");
+    for(let i=0;i<3;i++)dots.append(el("i"));
+    const header=el("div","draft-stage-header");header.append(title,dots);
+    const detail=el("div","draft-stage-detail");
+    const progress=el("progress","draft-progress");progress.max=100;progress.value=0;progress.setAttribute("aria-label","Simulated drafting progress");
+    const percent=el("span","draft-percent","0%");
+    const meter=el("div","draft-meter");meter.append(progress,percent);
+    const cancel=el("button","draft-cancel","Cancel drafting");cancel.type="button";
+    const footer=el("div","draft-stage-footer");footer.append(el("span","","SIMULATED DESIGN"),cancel);
+    bubble.append(header,detail,meter,footer);
+    const job={snapshot,card,title,detail,progress,percent,stage:"",reveal:null,timer:null,result:null};
+    draftJob=job;
+    cancel.addEventListener("click",()=>finishDraft(job,"cancel"));
+    render();
+    setDraftStage(job,"Analyzing request…","Identifying the goal and workflow requirements.",8);
+    scheduleDraft(job,()=>{
+      setDraftStage(job,"Planning workflow…","Selecting a trigger and matching tasks to specialist agents.",24);
+      scheduleDraft(job,()=>{
+        job.reveal=0;
+        job.result=prepareDraft(text);
+        render();
+        const steps=state.flow?.steps||[];
+        function revealNext(){
+          if(job.reveal>=steps.length){
+            const hasApproval=steps.some(s=>s.kind==="approval");
+            setDraftStage(job,"Reviewing blueprint…",hasApproval?"Checking step order and approval gates.":"Checking step order and final output.",92);
+            scheduleDraft(job,()=>finishDraft(job,"complete"),draftDelay(900,1400));
+            return;
+          }
+          const step=steps[job.reveal++];
+          setDraftStage(job,"Drafting step "+job.reveal+" of "+steps.length+"…",step.agent+" · "+step.title,35+Math.round(job.reveal/steps.length*52));
+          render();
+          const canvas=$("workflowCanvas");
+          if(canvas.getClientRects().length)canvas.scrollTop=canvas.scrollHeight;
+          scheduleDraft(job,revealNext,draftDelay(550,900));
+        }
+        revealNext();
+      },draftDelay(1100,1600));
+    },draftDelay(950,1450));
   }
 
   function moveSelected(delta) {
@@ -871,7 +960,7 @@
   }
 
   function previewRun() {
-    if (!state.flow) return;
+    if (!state.flow || state.pendingReply) return;
     stopPreview();
     const token = state.runToken;
     const stepIds = state.flow.steps.map(step => step.id);
@@ -901,6 +990,7 @@
   }
 
   function exportWorkflow() {
+    if (state.pendingReply) return;
     if (!state.flow) {
       notify("Design a workflow before exporting.");
       return;
@@ -1010,6 +1100,7 @@
   $("renameWorkflowFolder").addEventListener("click", renameCurrentWorkflowFolder);
   $("deleteWorkflowFolder").addEventListener("click", deleteCurrentWorkflowFolder);
   $("resetFlow").addEventListener("click", () => {
+    if(state.pendingReply)return;
     if (state.flow && state.dirty && !window.confirm("Discard unsaved changes and start a new draft?")) return;
     stopPreview();
     state.flow = null;

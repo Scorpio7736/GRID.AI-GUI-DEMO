@@ -431,3 +431,18 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible,
 .workflow-sound-toggle.enabled{color:var(--gold);border-color:#63512b}
 .workflow-sound-toggle:hover{border-color:var(--gold-dim)}
 @media(max-width:710px){.studio-topbar{height:auto;min-height:44px}.workflow-sound-toggle{font-size:9px;padding:5px}}
+
+/* Simulated Mcp drafting: compact stage card and progressively revealed canvas nodes. */
+.drafting-message .message-bubble{border-color:#63512b;background:#211f1a;min-width:0;width:100%}
+.draft-stage-header,.draft-meter,.draft-stage-footer{display:flex;align-items:center;gap:8px}
+.draft-stage-title{font-size:12px;color:var(--gold);flex:1;min-width:0}
+.draft-stage-detail{color:var(--text);font-size:11px;line-height:1.5;margin:7px 0 10px;overflow-wrap:anywhere}
+.draft-dots{display:flex;gap:4px;flex-shrink:0}.draft-dots i{width:5px;height:5px;background:var(--gold);border-radius:50%;animation:draft-dot .95s ease-in-out infinite alternate}.draft-dots i:nth-child(2){animation-delay:.17s}.draft-dots i:nth-child(3){animation-delay:.34s}
+@keyframes draft-dot{from{opacity:.28;transform:translateY(0)}to{opacity:1;transform:translateY(-3px)}}
+.draft-progress{width:100%;height:5px;border:0;appearance:none;border-radius:5px;overflow:hidden;accent-color:var(--gold);background:var(--surface-soft)}.draft-progress::-webkit-progress-bar{background:var(--surface-soft)}.draft-progress::-webkit-progress-value{background:var(--gold);transition:width .3s ease}.draft-progress::-moz-progress-bar{background:var(--gold)}
+.draft-percent{font:10px var(--mono);color:var(--gold);min-width:30px;text-align:right}
+.draft-stage-footer{justify-content:space-between;margin-top:10px;color:var(--muted);font:9px var(--mono);letter-spacing:.4px}
+.draft-cancel{background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:5px;font:10px var(--sans);padding:4px 7px;cursor:pointer}.draft-cancel:hover{color:var(--ivory);border-color:var(--gold-dim)}
+.flow-node.draft-node-enter{animation:draft-node-in .35s cubic-bezier(.22,.72,.25,1) both}.flow-node:disabled{cursor:default;opacity:.85}.flow-node:disabled:hover{transform:none}
+@keyframes draft-node-in{from{opacity:0;transform:translateY(7px)}to{opacity:.85;transform:none}}
+@media(prefers-reduced-motion:reduce){.draft-dots i,.flow-node.draft-node-enter{animation:none!important}.draft-progress::-webkit-progress-value{transition:none}}
