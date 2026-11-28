@@ -23,8 +23,8 @@
     {id:"PIMA",name:"PIMA",file:"./Audio/Voices/PIMA_VOICE.mp3",transcript:""},
     {id:"Royal",name:"Royal",file:"./Audio/Voices/Royal_VOICE.mp3",transcript:""}
   ];
-  const assignments=new Map(),transcripts=new Map(samples.map(s=>[s.id,s.transcript]));
-  let selectedAgent=agents[0],selectedVoice=samples[0],frame=null,playToken=0,activeSource="",failed=false;
+  const assignments=new Map([["MAXIS","Humanoid"],["TRON","PIMA"],["JN","Classic"],["VOLT","Gentleman"],["RELAY","GrandGeneral"]]),transcripts=new Map(samples.map(s=>[s.id,s.transcript]));
+  let selectedAgent=agents[0],selectedVoice=null,frame=null,playToken=0,activeSource="",failed=false;
   const audio=$("voiceAudio");
   const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
   function portrait(agent,large=false){
@@ -43,7 +43,7 @@
         stop();
         selectedAgent=agent;
         const assigned=samples.find(s=>s.id===assignments.get(agent.id));
-        if(assigned)chooseVoice(assigned);else render();
+        chooseVoice(assigned||null);
         $("voiceFeedback").textContent=agent.name+" selected. Choose a sample and assign a voice.";
       });
       return b;
@@ -51,10 +51,10 @@
   }
   function renderCatalog(){
     $("voiceCatalog").replaceChildren(...samples.map(sample=>{
-      const b=el("button","voice-sample"+(sample.id===selectedVoice.id?" selected":""));b.type="button";b.setAttribute("aria-pressed",String(sample.id===selectedVoice.id));
+      const b=el("button","voice-sample"+(sample.id===selectedVoice?.id?" selected":""));b.type="button";b.setAttribute("aria-pressed",String(sample.id===selectedVoice?.id));
       const icon=el("span","voice-sample-icon","♪");icon.setAttribute("aria-hidden","true");
       const copy=el("span","voice-sample-copy");copy.append(el("strong","",sample.name),el("small","","Fish.Audio · MP3"));
-      b.append(icon,copy,el("span","voice-sample-tag",assignments.get(selectedAgent.id)===sample.id?"ASSIGNED":sample.id===selectedVoice.id?"SELECTED":""));
+      b.append(icon,copy,el("span","voice-sample-tag",assignments.get(selectedAgent.id)===sample.id?"ASSIGNED":sample.id===selectedVoice?.id?"SELECTED":""));
       b.addEventListener("click",()=>chooseVoice(sample));return b;
     }));
   }
@@ -62,13 +62,15 @@
     renderAgents();renderCatalog();
     $("voicePreviewPortrait").replaceChildren(portrait(selectedAgent,true));
     $("voicePreviewAgent").textContent=selectedAgent.name;
-    $("voicePreviewName").textContent=selectedVoice.name;
+    $("voicePreviewName").textContent=selectedVoice?.name||"Select a voice";
     const assigned=samples.find(s=>s.id===assignments.get(selectedAgent.id));
     $("voiceAssignmentLabel").textContent=assigned?"Assigned voice: "+assigned.name:"No voice assigned";
-    $("voiceAssign").textContent=assigned?.id===selectedVoice.id?"Voice assigned":"Assign to "+selectedAgent.name;
-    $("voiceAssign").disabled=assigned?.id===selectedVoice.id;
+    $("voiceAssign").textContent=selectedVoice&&assigned?.id===selectedVoice.id?"Voice assigned":"Assign to "+selectedAgent.name;
+    $("voiceAssign").disabled=!selectedVoice||assigned?.id===selectedVoice?.id;
+    $("voicePlay").disabled=!selectedVoice;
+    $("voiceTranscriptInput").disabled=!selectedVoice;
     $("voiceClear").disabled=!assigned;
-    $("voiceTranscriptInput").value=transcripts.get(selectedVoice.id)||"";
+    $("voiceTranscriptInput").value=transcripts.get(selectedVoice?.id)||"";
     $("voiceApplyAll").disabled=!$("voiceTranscriptInput").value.trim();
     updateProgress();
   }
@@ -79,16 +81,16 @@
   // The media clock is authoritative. Pause, seek and replay update the same caption
   // fraction; no independent character timer can drift from the audio.
   function updateProgress(){
-    const duration=audio.duration,valid=Number.isFinite(duration)&&duration>0;
+    const duration=selectedVoice?audio.duration:NaN,valid=Number.isFinite(duration)&&duration>0;
     const fraction=valid?Math.max(0,Math.min(1,audio.currentTime/duration)):0;
-    const transcript=transcripts.get(selectedVoice.id)||"";
+    const transcript=transcripts.get(selectedVoice?.id)||"";
     const glyphs=Array.from(transcript);
     $("voiceSpokenText").textContent=glyphs.slice(0,audio.ended?glyphs.length:Math.floor(glyphs.length*fraction)).join("");
     $("voiceSpokenText").hidden=!transcript.trim();
     $("voiceTranscriptEmpty").hidden=!!transcript.trim();
     $("voiceTranscriptState").textContent=transcript.trim()?"TRANSCRIPT ENTERED":"NOT PROVIDED";
     $("voiceTranscriptProgress").textContent=Math.round(fraction*100)+"%";
-    $("voiceCurrentTime").textContent=timeLabel(audio.currentTime);
+    $("voiceCurrentTime").textContent=timeLabel(selectedVoice?audio.currentTime:0);
     $("voiceDuration").textContent=timeLabel(duration);
     $("voiceSeek").disabled=!valid;$("voiceSeek").max=valid?String(duration):"1";
     $("voiceSeek").value=valid?String(Math.min(duration,audio.currentTime)):"0";
@@ -109,8 +111,9 @@
   }
   function chooseVoice(sample){
     stop();selectedVoice=sample;failed=false;
-    if(activeSource!==sample.file){activeSource=sample.file;audio.src=sample.file;audio.load();}
-    render();$("voiceFeedback").textContent="Selected "+sample.name+". Play the sample to audition it.";
+    if(sample){if(activeSource!==sample.file){activeSource=sample.file;audio.src=sample.file;audio.load();}}
+    else if(activeSource){activeSource="";audio.removeAttribute("src");audio.load();}
+    setPlaying(false);render();$("voiceFeedback").textContent=sample?"Selected "+sample.name+". Play the sample to audition it.":"Choose a voice to preview and assign.";
   }
   async function play(){
     if(!$("voiceAudio").closest("[data-page]").hidden&&selectedVoice){
@@ -132,11 +135,12 @@
   audio.addEventListener("ended",()=>{setPlaying(false);updateProgress();});
   audio.addEventListener("error",()=>{if(!activeSource)return;failed=true;setPlaying(false);$("voiceFeedback").textContent="The selected sample could not be loaded.";});
   $("voiceAssign").addEventListener("click",()=>{
+    if(!selectedVoice)return;
     assignments.set(selectedAgent.id,selectedVoice.id);render();
     $("voiceFeedback").textContent=selectedVoice.name+" assigned to "+selectedAgent.name+" for this session. Voice Studio only.";
   });
-  $("voiceClear").addEventListener("click",()=>{assignments.delete(selectedAgent.id);render();$("voiceFeedback").textContent="Voice assignment cleared for "+selectedAgent.name+".";});
-  $("voiceTranscriptInput").addEventListener("input",event=>{transcripts.set(selectedVoice.id,event.target.value);$("voiceApplyAll").disabled=!event.target.value.trim();updateProgress();});
+  $("voiceClear").addEventListener("click",()=>{assignments.delete(selectedAgent.id);chooseVoice(null);$("voiceFeedback").textContent="Voice assignment cleared for "+selectedAgent.name+".";});
+  $("voiceTranscriptInput").addEventListener("input",event=>{if(!selectedVoice)return;transcripts.set(selectedVoice.id,event.target.value);$("voiceApplyAll").disabled=!event.target.value.trim();updateProgress();});
   $("voiceApplyAll").addEventListener("click",()=>{
     const value=$("voiceTranscriptInput").value;if(!value.trim())return;
     if(!window.confirm("Use these exact spoken words for every voice sample in this session?"))return;
@@ -145,7 +149,7 @@
   });
   window.GridVoiceStudio={stop};
   // Metadata is loaded only when entering the studio or selecting a sample.
-  function activate(){if(!activeSource)chooseVoice(selectedVoice);}
+  function activate(){if(selectedVoice&&!activeSource)chooseVoice(selectedVoice);}
   window.GridVoiceStudio.activate=activate;
   render();
 })();
