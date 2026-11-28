@@ -290,3 +290,7 @@ Voice Studio defaults on each refresh: Mcp unassigned; MAXIS = Humanoid; TRON = 
 ### Deployment asset fix
 
 Voice Studio MP3s in `Audio/Voices/` must be included in Vercel deployments. `.vercelignore` now excludes only unused root-level `Audio/*.wav` files, not the voice samples. The shared GRID.AI SVG favicon is linked from the shell and standalone pages. Browser-extension console messages and lazy-loading interventions are unrelated to these asset fixes.
+
+### Social sharing and branding
+
+The shell and standalone entry pages declare static Open Graph and Twitter large-image metadata using `https://gridai-demo.jacklondon.site/` as the canonical demo URL. The social image and primary PNG icon reuse the existing GRID.AI promotional image and official project icon hosted by the companion portfolio (`jacklondon.site`). A local SVG favicon matches the sidebar logo as a fallback. Existing noindex policy is retained; metadata describes a simulated UI demo, not live agent execution. Social previews depend on public availability of the companion portfolio assets.
