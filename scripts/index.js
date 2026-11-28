@@ -526,6 +526,13 @@
     const next=records.map(a=>({...a}));
     if(JSON.stringify(next)===JSON.stringify(approvals))return;
     approvals=next;
+    const byId=new Map(approvals.map(a=>[a.id,a]));
+    for(const notice of notices){
+      if(!notice.approval)continue;
+      const record=byId.get(notice.approval);
+      if(!record){notice.approval=null;notice.unread=false;notice.detail+=" · Request removed";dismissBanner(notice.id,true);}
+      else if(record.status!=="pending"){notice.unread=false;dismissBanner(notice.id,true);}
+    }
     drawApprovals();
   }
   function setWorkflowCounts(active,saved){

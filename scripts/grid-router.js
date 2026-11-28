@@ -142,4 +142,30 @@
   window.addEventListener("hashchange",()=>{const p=parse();apply(p.route,p.params);});
   window.addEventListener("resize",()=>{if(active)markRoute(active);});
   const initial=parse();apply(initial.route,initial.params);
+  // The timer exists once in the shell and survives workspace navigation.
+  // No request is generated while the page is hidden or while the preference is off.
+  let approvalTimer=null;
+  const delay=(min,max)=>min+Math.floor(Math.random()*(max-min+1));
+  function scheduleApproval(first=false){
+    clearTimeout(approvalTimer);
+    approvalTimer=null;
+    if(!window.GridSettings.get().automaticApprovals)return;
+    approvalTimer=setTimeout(()=>{
+      approvalTimer=null;
+      try{
+        if(!document.hidden&&window.GridSettings.get().automaticApprovals&&!document.querySelector("dialog[open]")){
+          // Lazy initialization does not change the route or select a conversation.
+          mount("connect").api.requestAutomaticApproval();
+        }
+      }catch(error){console.error("GRID demo approval generator failed",error);}
+      finally{scheduleApproval();}
+    },first?delay(20000,35000):delay(35000,75000));
+  }
+  let automaticEnabled=window.GridSettings.get().automaticApprovals;
+  window.GridSettings.subscribe(value=>{
+    if(value.automaticApprovals===automaticEnabled)return;
+    automaticEnabled=value.automaticApprovals;
+    scheduleApproval(true);
+  });
+  scheduleApproval(true);
 })();

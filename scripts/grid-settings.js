@@ -1,6 +1,6 @@
 "use strict";
 (()=>{
- const defaults=Object.freeze({sounds:true,volume:67,animations:true,typewriter:true,pinnedSidebar:false,notificationBadge:true,notificationBanners:true,notificationSounds:true}),media=matchMedia("(prefers-reduced-motion: reduce)");
+ const defaults=Object.freeze({sounds:true,volume:67,animations:true,typewriter:true,pinnedSidebar:false,notificationBadge:true,notificationBanners:true,notificationSounds:true,automaticApprovals:true}),media=matchMedia("(prefers-reduced-motion: reduce)");
  let values={...defaults};
  const listeners=new Set(),get=()=>({...values}),motionEnabled=()=>values.animations&&!media.matches;
  function apply(){document.documentElement.dataset.gridMotion=motionEnabled()?"on":"off";document.documentElement.dataset.gridSidebar=values.pinnedSidebar?"pinned":"hover";for(const fn of listeners){try{fn(get());}catch(error){console.error("GRID settings listener failed",error);}}}
